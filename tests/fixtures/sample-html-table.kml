@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+    <name>Sample HTML Table KML</name>
+    <Folder>
+        <name>Poles</name>
+        <Placemark id="POLE001">
+            <name>1</name>
+            <description><![CDATA[<div>Inside ROW&nbsp;<br></div>]]></description>
+            <Point>
+                <coordinates>-96.62433096621689,29.51446470866217,0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="POLE002">
+            <name>3</name>
+            <description><![CDATA[<html>
+<body>
+<table>
+<tr style="text-align:center;font-weight:bold;background:#9CBCE2">
+<td>3</td>
+</tr>
+<tr>
+<td>
+<table>
+<tr>
+<td>SHAPE</td>
+<td>Point</td>
+</tr>
+<tr>
+<td>Pole_Type</td>
+<td>Distribution</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body></html>]]></description>
+            <Point>
+                <coordinates>-96.62436877540888,29.51372368242681,0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="LINE001">
+            <name>Strand</name>
+            <description><![CDATA[<html>
+<body>
+<table>
+<tr style="text-align:center;font-weight:bold;background:#9CBCE2">
+<td>New Strand</td>
+</tr>
+<tr>
+<td>
+<table>
+<tr>
+<td>Line_Type</td>
+<td>New Strand</td>
+</tr>
+<tr>
+<td>Span_Type</td>
+<td>Slack_Span</td>
+</tr>
+<tr>
+<td>Length</td>
+<td>54</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body></html>]]></description>
+            <LineString>
+                <tessellate>1</tessellate>
+                <coordinates>
+                    -96.62434929364532,29.51431660907176,0 -96.62433096621689,29.51446470866217,0
+                </coordinates>
+            </LineString>
+        </Placemark>
+    </Folder>
+</Document>
+</kml>

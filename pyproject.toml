@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kml2report"
+version = "0.1.0"
+description = "KML/KMZ to structured report data pipeline"
+requires-python = ">=3.9"
+dependencies = [
+    "lxml>=4.9",
+    "click>=8.1",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+web = [
+    "fastapi>=0.104",
+    "uvicorn[standard]>=0.24",
+    "python-multipart>=0.0.6",
+    "jinja2>=3.1",
+]
+llm = [
+    "openai>=1.0",
+    "anthropic>=0.18",
+    "ollama>=0.1",
+    "huggingface_hub>=0.20",
+]
+llm-openai = ["openai>=1.0"]
+llm-anthropic = ["anthropic>=0.18"]
+llm-ollama = ["ollama>=0.1"]
+llm-huggingface = ["huggingface_hub>=0.20"]
+dev = [
+    "pytest>=7.4",
+]
+
+[project.scripts]
+kml2report = "kml2report.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

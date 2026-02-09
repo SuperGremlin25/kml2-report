@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kml2report</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #1a1a2e; padding: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.25rem; color: #16213e; }
+        .subtitle { color: #666; margin-bottom: 2rem; font-size: 0.95rem; }
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1.5rem; }
+        .card h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #16213e; }
+        .upload-area { border: 2px dashed #c5cae9; border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+        .upload-area:hover { border-color: #5c6bc0; }
+        .upload-area input[type="file"] { display: none; }
+        .upload-area label { cursor: pointer; display: block; }
+        .upload-area .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .upload-area p { color: #666; font-size: 0.9rem; }
+        .btn { display: inline-block; padding: 0.6rem 1.4rem; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+        .btn-primary { background: #5c6bc0; color: #fff; }
+        .btn-primary:hover { background: #3f51b5; }
+        .btn-secondary { background: #e8eaf6; color: #3f51b5; }
+        .btn-secondary:hover { background: #c5cae9; }
+        .btn-group { display: flex; gap: 0.75rem; margin-top: 1rem; }
+        .stats { display: flex; gap: 1.5rem; margin-bottom: 1rem; }
+        .stat { background: #e8eaf6; border-radius: 6px; padding: 0.75rem 1.25rem; }
+        .stat .num { font-size: 1.4rem; font-weight: 700; color: #3f51b5; }
+        .stat .label { font-size: 0.8rem; color: #666; }
+        .table-wrap { overflow-x: auto; max-height: 500px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { position: sticky; top: 0; background: #3f51b5; color: #fff; padding: 0.6rem 0.75rem; text-align: left; white-space: nowrap; }
+        td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #eee; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        tr:hover td { background: #f5f5ff; }
+        .filename { font-weight: 500; color: #3f51b5; margin-left: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>kml2report</h1>
+        <p class="subtitle">Extract structured data from KML/KMZ files</p>
+
+        <div class="card">
+            <h2>Upload KML / KMZ</h2>
+            <form id="parseForm" action="/parse" method="post" enctype="multipart/form-data">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <label for="fileInput">
+                        <div class="icon">&#128506;</div>
+                        <p><strong>Click to select</strong> a .kml or .kmz file</p>
+                        <p id="selectedFile" style="margin-top:0.5rem; color:#3f51b5;"></p>
+                    </label>
+                    <input type="file" id="fileInput" name="file" accept=".kml,.kmz" onchange="showFileName(this)">
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">Parse &amp; Preview</button>
+                </div>
+            </form>
+        </div>
+
+        {% if rows is not none %}
+        <div class="card">
+            <h2>Results</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="num">{{ count }}</div>
+                    <div class="label">Features</div>
+                </div>
+                <div class="stat">
+                    <div class="num">{{ cols|length }}</div>
+                    <div class="label">Columns</div>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-bottom:1rem;">
+                <button class="btn btn-secondary" onclick="downloadAs('csv')">Download CSV</button>
+                <button class="btn btn-secondary" onclick="downloadAs('json')">Download JSON</button>
+            </div>
+
+            {% if rows %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            {% for col in cols %}
+                            <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows[:200] %}
+                        <tr>
+                            {% for col in cols %}
+                            <td title="{{ row.get(col, '') }}">{{ row.get(col, '') }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if count > 200 %}
+            <p style="margin-top:0.75rem; color:#666; font-size:0.85rem;">Showing first 200 of {{ count }} rows. Download for full data.</p>
+            {% endif %}
+            {% else %}
+            <p style="color:#666;">No features found in the uploaded file.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showFileName(input) {
+            const name = input.files[0]?.name || '';
+            document.getElementById('selectedFile').textContent = name;
+        }
+
+        function downloadAs(format) {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select a file first.');
+                return;
+            }
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/export/' + format;
+            form.enctype = 'multipart/form-data';
+            form.style.display = 'none';
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.name = 'file';
+            const dt = new DataTransfer();
+            dt.items.add(fileInput.files[0]);
+            input.files = dt.files;
+
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+    <name>Sample Key-Value KML</name>
+    <Folder>
+        <name>Targets</name>
+        <Placemark id="PM001">
+            <name>Alpha Site</name>
+            <description>ID=OBJ-001; TYPE=SITE; PRIORITY=HIGH; STATUS=ACTIVE; NOTES=Located near key infrastructure.</description>
+            <Point>
+                <coordinates>-96.624330,29.514464,0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="PM002">
+            <name>Bravo Checkpoint</name>
+            <description>ID=OBJ-002;TYPE=CHECKPOINT;PRTY=LOW;STATUS=INACTIVE</description>
+            <Point>
+                <coordinates>-96.625100,29.513200,0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="PM003">
+            <name>Route Gamma</name>
+            <description>ID=OBJ-003; TYPE=ROUTE; PRIORITY=MEDIUM; STATUS=PLANNED; NOTES=Alternate supply route</description>
+            <LineString>
+                <coordinates>
+                    -96.624330,29.514464,0 -96.625100,29.513200,0 -96.626000,29.512000,0
+                </coordinates>
+            </LineString>
+        </Placemark>
+    </Folder>
+    <Folder>
+        <name>Observations</name>
+        <Placemark id="PM004">
+            <name>Observation Point</name>
+            <description>Just a plain text note with no key-value pairs.</description>
+            <Point>
+                <coordinates>-96.630000,29.510000,0</coordinates>
+            </Point>
+        </Placemark>
+    </Folder>
+</Document>
+</kml>

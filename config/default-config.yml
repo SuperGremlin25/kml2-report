@@ -1,0 +1,67 @@
+# kml2report configuration
+# ========================
+# This file controls how description text is parsed and which fields are
+# extracted from KML Placemarks.
+
+# --------------------------------------------------------------------------
+# field_map: Maps raw description keys (case-insensitive) to canonical
+# output column names.  Add entries here when your KML descriptions use
+# shorthand or non-standard keys.
+# --------------------------------------------------------------------------
+field_map:
+  ID: id
+  TYPE: type
+  PRIORITY: priority
+  PRTY: priority
+  STATUS: status
+  NOTES: notes
+  NOTE: notes
+  SHAPE: shape
+  Pole_Type: pole_type
+  Line_Type: line_type
+  Span_Type: span_type
+  Length: length
+  Accuracy (m): accuracy_m
+
+# --------------------------------------------------------------------------
+# defaults: Values to fill in when a field is missing from a Placemark.
+# --------------------------------------------------------------------------
+defaults:
+  priority: UNKNOWN
+  status: UNKNOWN
+  type: UNKNOWN
+
+# --------------------------------------------------------------------------
+# filters: Optional filters applied during export.  Only features matching
+# ALL conditions are included.  Remove or leave empty to export everything.
+# Each filter is a dict with "field", "operator" (eq, ne, in, contains),
+# and "value".
+# --------------------------------------------------------------------------
+filters: []
+# Example:
+# filters:
+#   - field: type
+#     operator: eq
+#     value: SITE
+#   - field: priority
+#     operator: in
+#     value: [HIGH, CRITICAL]
+
+# --------------------------------------------------------------------------
+# description_separators: Characters/patterns used to split KEY=VALUE pairs
+# inside a description string.  The parser tries each in order.
+# --------------------------------------------------------------------------
+description_separators:
+  - ";"
+  - "\n"
+  - "<br>"
+  - "<br/>"
+  - "<br />"
+
+# --------------------------------------------------------------------------
+# output: Default export settings.
+# --------------------------------------------------------------------------
+output:
+  format: csv          # csv or json
+  include_raw: true    # include original description text in output
+  coordinate_format: decimal  # decimal or wkt
