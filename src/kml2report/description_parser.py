@@ -46,6 +46,11 @@ def parse_description(
     normalized = _apply_field_map(attrs, field_map)
     _apply_defaults(normalized, defaults)
 
+    # Normalize "note" (singular) → "notes" so injected Field Note tables
+    # from annotated KMZ files are picked up by the summarizer.
+    if "note" in normalized and "notes" not in normalized:
+        normalized["notes"] = normalized.pop("note")
+
     return normalized
 
 
