@@ -12,10 +12,18 @@ from __future__ import annotations
 import io
 import csv
 import json
+import os
 import re
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+# Ensure the local src/ package is importable on HF Spaces (where the
+# package is NOT pip-installed).
+_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src")
+if _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
 
 import streamlit as st
 
@@ -422,7 +430,6 @@ with tab_report:
     }
 
     env_var = env_var_map.get(provider)
-    import os
     has_key = env_var is None or bool(os.environ.get(env_var))
 
     if not has_key:
