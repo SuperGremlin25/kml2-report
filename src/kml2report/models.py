@@ -15,17 +15,21 @@ class Geometry:
 
     @property
     def latitude(self) -> Optional[float]:
-        """Return latitude for point geometries."""
-        if self.geometry_type == "Point" and self.coordinates:
+        """Return latitude (centroid for multi-coord geometries)."""
+        if not self.coordinates:
+            return None
+        if self.geometry_type == "Point":
             return self.coordinates[0][1]
-        return None
+        return sum(c[1] for c in self.coordinates) / len(self.coordinates)
 
     @property
     def longitude(self) -> Optional[float]:
-        """Return longitude for point geometries."""
-        if self.geometry_type == "Point" and self.coordinates:
+        """Return longitude (centroid for multi-coord geometries)."""
+        if not self.coordinates:
+            return None
+        if self.geometry_type == "Point":
             return self.coordinates[0][0]
-        return None
+        return sum(c[0] for c in self.coordinates) / len(self.coordinates)
 
     def to_wkt(self) -> str:
         """Convert geometry to WKT string."""

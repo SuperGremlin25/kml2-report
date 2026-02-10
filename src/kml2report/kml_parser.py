@@ -91,8 +91,22 @@ def _parse_placemark(elem: etree._Element, source_file: str) -> Feature:
 
 
 def _parse_geometry(placemark: etree._Element) -> Geometry | None:
-    """Extract the first geometry child from a Placemark."""
-    for tag in GEOMETRY_TAGS:
+    """Extract geometry from a Placemark, merging all children for MultiGeometry."""
+    multi = placemark.find(".//MultiGeometry")
+    if multi is not None:
+        all_coords: list[tuple[float, float, float]] = []
+        child_type = "MultiGeometry"
+        for child_tag in ("Point", "LineString", "Polygon"):
+            for child_el in multi.findall(child_tag):
+                child_coords = _parse_coordinates(child_el)
+                if child_coords:
+                    all_coords.extend(child_coords)
+                    if child_type == "MultiGeometry":
+                        child_type = child_tag
+        if all_coords:
+            return Geometry(geometry_type=child_type, coordinates=all_coords)
+
+    for tag in ("Point", "LineString", "Polygon"):
         geom_el = placemark.find(f".//{tag}")
         if geom_el is not None:
             coords = _parse_coordinates(geom_el)

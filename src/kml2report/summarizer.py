@@ -12,10 +12,12 @@ Takes parsed KML features and produces a structured narrative report by:
 
 from __future__ import annotations
 
+import json
 import re
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field as dc_field
+from pathlib import Path
 from typing import Any
 
 from kml2report.models import Feature
@@ -388,6 +390,8 @@ class ClassifiedNote:
     nearest_town: str = ""
     county: str = ""
     location_label: str = ""
+    town: str = ""
+    google_maps_url: str = ""
 
 
 def _extract_pole_id(text: str) -> str:
@@ -473,11 +477,82 @@ def _clean_talk_to_text(text: str) -> str:
     return text.strip()
 
 
+_DEFAULT_TOWN_CENTERS: list[tuple[str, float, float]] = [
+    ("Sheridan", 29.5029, -96.6653),
+    ("Garwood", 29.4500, -96.4000),
+    ("Columbus", 29.7065, -96.5397),
+]
+
+
+def load_town_config(
+    config_path: str | Path | None = None,
+) -> list[tuple[str, float, float]]:
+    """Load town centers from a JSON config file.
+
+    Expected JSON schema::
+
+        {
+          "county": "Colorado",
+          "state": "Texas",
+          "towns": [
+            {"name": "Sheridan", "latitude": 29.5029, "longitude": -96.6653},
+            ...
+          ]
+        }
+
+    Falls back to built-in defaults when *config_path* is ``None`` or the
+    file cannot be read.
+    """
+    if config_path is None:
+        return list(_DEFAULT_TOWN_CENTERS)
+    p = Path(config_path)
+    if not p.is_file():
+        return list(_DEFAULT_TOWN_CENTERS)
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        towns = data.get("towns", [])
+        return [(t["name"], float(t["latitude"]), float(t["longitude"])) for t in towns]
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return list(_DEFAULT_TOWN_CENTERS)
+
+
+_HIGH_RISK_THEMES = frozenset({
+    "access_private", "obstacles", "construction_bore", "permits",
+})
+
+
+def _assign_town(
+    lat: float | None,
+    lon: float | None,
+    town_centers: list[tuple[str, float, float]] | None = None,
+) -> str:
+    """Assign a note to the nearest client-tracked town center."""
+    if lat is None or lon is None:
+        return ""
+    centers = town_centers or _DEFAULT_TOWN_CENTERS
+    best_town = ""
+    best_dist = float("inf")
+    for name, t_lat, t_lon in centers:
+        d = _haversine_mi(lat, lon, t_lat, t_lon)
+        if d < best_dist:
+            best_dist = d
+            best_town = name
+    return best_town
+
+
+def _google_maps_url(lat: float | None, lon: float | None) -> str:
+    """Return a clickable Google Maps URL for a coordinate pair."""
+    if lat is None or lon is None:
+        return ""
+    return f"https://www.google.com/maps?q={lat:.6f},{lon:.6f}"
+
+
 def classify_notes(
     features: list[Feature],
     geocode: bool = True,
     cache_path: Any = None,
     progress_callback: Any = None,
+    town_centers: list[tuple[str, float, float]] | None = None,
 ) -> list[ClassifiedNote]:
     from kml2report.description_parser import parse_description
 
@@ -523,6 +598,8 @@ def classify_notes(
             quadrant=quad,
             pole_id=_extract_pole_id(text),
             roads=roads,
+            town=_assign_town(lat, lon, town_centers=town_centers),
+            google_maps_url=_google_maps_url(lat, lon),
         ))
 
     if geocode and results:
@@ -569,50 +646,26 @@ def _apply_geocoding(
 # Report generation
 # ===================================================================
 
+def _is_descriptive_name(name: str) -> bool:
+    """Return True if *name* is a meaningful label (not just a numeric ID)."""
+    if not name:
+        return False
+    stripped = re.sub(r"[\s\-_.#]+", "", name)
+    return not stripped.isdigit()
+
+
+def _note_cell(n: "ClassifiedNote") -> str:
+    """Format the Note cell, suppressing numeric-only feature names."""
+    if _is_descriptive_name(n.feature_name):
+        return f"**{n.feature_name}** — {n.text}"
+    return n.text
+
+
 def _cluster_narrative(cl: GeoCluster, doc_name: str) -> list[str]:
-    """Build a rich narrative block for one geographic cluster."""
+    """Build a concise narrative block for one geographic cluster."""
     lines: list[str] = []
     n_notes = len(cl.notes)
     located = cl.center_lat != 0.0
-
-    heading_parts = [f"**{cl.label}**"]
-    if located:
-        heading_parts.append(
-            f"— {cl.distance_from_center_mi:.1f} mi {cl.direction_from_center} of project center"
-        )
-    lines.append(f"### {' '.join(heading_parts)}")
-    lines.append("")
-
-    if located:
-        lines.append(f"- **Center:** {_fmt_coord(cl.center_lat, cl.center_lon)}")
-        lines.append(f"- **Start:** {_fmt_coord(cl.start_lat, cl.start_lon)}")
-        lines.append(f"- **End:** {_fmt_coord(cl.end_lat, cl.end_lon)}")
-        if cl.span_mi > 0.01:
-            lines.append(f"- **Span:** {cl.span_mi:.2f} mi, runs **{cl.compass}**")
-        if cl.geocoded_road:
-            lines.append(f"- **Nearest road:** {cl.geocoded_road}")
-        if cl.geocoded_town:
-            town_str = cl.geocoded_town
-            if cl.geocoded_county and cl.geocoded_county != cl.geocoded_town:
-                town_str += f", {cl.geocoded_county}"
-            lines.append(f"- **Nearest town:** {town_str}")
-        geocoded_roads_all = sorted(set(
-            n.nearest_road for n in cl.notes if n.nearest_road
-        ))
-        if len(geocoded_roads_all) > 1:
-            lines.append(f"- **Roads in this area:** {', '.join(geocoded_roads_all[:6])}")
-        if cl.roads:
-            lines.append(f"- **Roads mentioned in notes:** {', '.join(cl.roads)}")
-        lines.append(f"- **Notes in this area:** {n_notes}")
-    else:
-        lines.append(f"- *{n_notes} note(s) without recorded coordinates*")
-    lines.append("")
-
-    pole_ids = sorted(set(n.pole_id for n in cl.notes if n.pole_id))
-    if pole_ids:
-        lines.append(f"**Referenced poles:** {', '.join(pole_ids[:15])}"
-                      + (f" and {len(pole_ids)-15} more" if len(pole_ids) > 15 else ""))
-        lines.append("")
 
     unique: list[ClassifiedNote] = []
     seen: set[str] = set()
@@ -622,16 +675,58 @@ def _cluster_narrative(cl: GeoCluster, doc_name: str) -> list[str]:
             seen.add(k)
             unique.append(n)
 
-    cap = min(25, len(unique))
-    lines.append(f"| # | Feature | Layer | Location | Lat | Lon | Note |")
-    lines.append("|--:|---------|-------|----------|-----|-----|------|")
-    for i, n in enumerate(unique[:cap], 1):
-        lat_s = f"{n.latitude:.6f}" if n.latitude is not None else ""
-        lon_s = f"{n.longitude:.6f}" if n.longitude is not None else ""
-        loc_s = n.location_label or ""
-        lines.append(f"| {i} | {n.feature_name} | {n.layer} | {loc_s} | {lat_s} | {lon_s} | {n.text} |")
-    if len(unique) > cap:
-        lines.append(f"| | | | | | | *…and {len(unique)-cap} more notes* |")
+    # --- Single-note clusters: compact inline format, no table ---
+    if len(unique) == 1:
+        n = unique[0]
+        maps_url = n.google_maps_url or ""
+        coord_s = _fmt_coord(n.latitude, n.longitude) if n.latitude else ""
+        loc_parts = []
+        if cl.label:
+            loc_parts.append(f"**{cl.label}**")
+        if coord_s and maps_url:
+            loc_parts.append(f"[{coord_s}]({maps_url})")
+        elif coord_s:
+            loc_parts.append(coord_s)
+        if located:
+            loc_parts.append(
+                f"{cl.distance_from_center_mi:.1f} mi {cl.direction_from_center}"
+            )
+        loc_str = " — ".join(loc_parts) if loc_parts else "Unknown location"
+        lines.append(f"- {loc_str}: {_note_cell(n)}")
+        lines.append("")
+        return lines
+
+    # --- Multi-note clusters ---
+    heading_parts = [f"**{cl.label}**"]
+    if located:
+        heading_parts.append(
+            f"— {cl.distance_from_center_mi:.1f} mi {cl.direction_from_center} of project center"
+        )
+    lines.append(f"### {' '.join(heading_parts)}")
+    lines.append("")
+
+    if located:
+        maps_center = _google_maps_url(cl.center_lat, cl.center_lon)
+        coord_link = (f"[{_fmt_coord(cl.center_lat, cl.center_lon)}]({maps_center})"
+                      if maps_center
+                      else _fmt_coord(cl.center_lat, cl.center_lon))
+        lines.append(f"- **Center:** {coord_link}")
+        if cl.span_mi > 0.05:
+            lines.append(f"- **Span:** {cl.span_mi:.2f} mi, runs **{cl.compass}**")
+        if cl.geocoded_road:
+            lines.append(f"- **Nearest road:** {cl.geocoded_road}")
+        lines.append(f"- **Notes:** {n_notes}")
+    else:
+        lines.append(f"- *{n_notes} note(s) without recorded coordinates*")
+    lines.append("")
+
+    lines.append("| # | Coordinates | Note |")
+    lines.append("|--:|-------------|------|")
+    for i, n in enumerate(unique, 1):
+        coord_s = _fmt_coord(n.latitude, n.longitude) if n.latitude else "—"
+        maps_url = n.google_maps_url or ""
+        coord_cell = f"[{coord_s}]({maps_url})" if maps_url else coord_s
+        lines.append(f"| {i} | {coord_cell} | {_note_cell(n)} |")
     lines.append("")
     return lines
 
@@ -642,16 +737,46 @@ def generate_summary_report(
     geocode: bool = True,
     cache_path: Any = None,
     progress_callback: Any = None,
+    town_filter: str | None = None,
+    town_centers: list[tuple[str, float, float]] | None = None,
 ) -> str:
-    """Generate a location-intelligent Markdown summary report."""
+    """Generate a location-intelligent Markdown summary report.
+
+    Parameters
+    ----------
+    town_filter : str, optional
+        If provided, only include notes assigned to this town
+        (e.g. "Sheridan", "Garwood", "Columbus").
+    town_centers : list of (name, lat, lon), optional
+        Override the default town center list.  Load from a JSON config
+        via :func:`load_town_config`.
+    """
+    centers = town_centers or _DEFAULT_TOWN_CENTERS
     classified = classify_notes(
         features,
         geocode=geocode,
         cache_path=cache_path,
         progress_callback=progress_callback,
+        town_centers=centers,
     )
+
+    if town_filter:
+        classified = [n for n in classified if n.town == town_filter]
+
     if not classified:
         return f"# Field Notes Summary\n\nNo field notes found in {doc_name or 'input'}.\n"
+
+    if town_filter:
+        town_coords = {name: (lat, lon) for name, lat, lon in centers}
+        if town_filter in town_coords:
+            t_lat, t_lon = town_coords[town_filter]
+            features = [
+                f for f in features
+                if f.geometry and f.geometry.latitude is not None
+                and _haversine_mi(f.geometry.latitude, f.geometry.longitude, t_lat, t_lon)
+                < max(_haversine_mi(n.latitude, n.longitude, t_lat, t_lon)
+                      for n in classified if n.latitude is not None) + 1.0
+            ]
 
     min_lat, max_lat, min_lon, max_lon = _bbox(features)
     center_lat, center_lon = _centroid(features)
@@ -699,7 +824,12 @@ def generate_summary_report(
     lines.append("- **Distance & direction from project center** — quick orientation")
     lines.append("- **Nearest road & town** — reverse-geocoded from coordinates via OpenStreetMap")
     lines.append("- **Roads mentioned in notes** — extracted from field note text")
-    lines.append("- **Individual note coordinates** — each row has lat/lon and location for precise cross-reference")
+    lines.append("- **Individual note coordinates** — each row has lat/lon and a clickable Google Maps link")
+    lines.append("")
+    lines.append("**Note on feature labels:** Bold text before the em-dash in each note (e.g. "
+                 "**Strand**, **Bore under drives**) is the original placemark name from the KML "
+                 "design file, assigned by the field engineer. Numeric-only placemark IDs "
+                 "(internal reference numbers) are suppressed for readability.")
     lines.append("")
 
     # --- Overview ---
@@ -720,15 +850,14 @@ def generate_summary_report(
     # --- Theme summary table ---
     lines.append("## Themes at a Glance")
     lines.append("")
-    lines.append("| Theme | Notes | % of Total |")
-    lines.append("|-------|------:|----------:|")
+    lines.append("| Theme | Notes |")
+    lines.append("|-------|------:|")
     ordered_keys = sorted(theme_notes.keys(),
                           key=lambda k: len(theme_notes[k]), reverse=True)
     for key in ordered_keys:
         heading = theme_lookup.get(key, ThemeDef(key=key, heading=key, patterns=[])).heading
         cnt = len(theme_notes[key])
-        pct = cnt / total_notes * 100 if total_notes else 0
-        lines.append(f"| {heading} | {cnt} | {pct:.0f}% |")
+        lines.append(f"| {heading} | {cnt} |")
     lines.append("")
 
     # --- Per-theme sections with geographic clusters ---
@@ -750,6 +879,7 @@ def generate_summary_report(
     lines.append("")
     _append_takeaways(lines, theme_notes, theme_lookup, doc_name, total_notes,
                       (center_lat, center_lon))
+
 
     return "\n".join(lines)
 
@@ -819,5 +949,78 @@ def _append_takeaways(
             f"- **{len(theme_notes['permits'])} permit/regulatory notes** — "
             f"TxDOT, highway crossings, or railroad ROW may require special permits."
         )
+
+    lines.append("")
+
+
+def _append_field_intelligence_appendix(
+    lines: list[str],
+    classified: list[ClassifiedNote],
+    theme_lookup: dict[str, ThemeDef],
+) -> None:
+    """Generate a Field Intelligence Appendix organized by town and risk category."""
+    high_risk = [
+        n for n in classified
+        if any(t in _HIGH_RISK_THEMES for t in n.themes)
+    ]
+    if not high_risk:
+        return
+
+    lines.append("---")
+    lines.append("")
+    lines.append("## Field Intelligence Appendix — High-Risk Locations")
+    lines.append("")
+    lines.append(
+        "This appendix lists every field note classified under a high-risk theme "
+        "(private property access, obstacles, bore requirements, permits). "
+        "Notes are organized by **town** and then by **risk category**. "
+        "Each entry includes a clickable Google Maps link for field verification."
+    )
+    lines.append("")
+
+    town_order = ["Sheridan", "Garwood", "Columbus", ""]
+    town_labels = {"Sheridan": "Sheridan", "Garwood": "Garwood",
+                   "Columbus": "Columbus", "": "Unlocated"}
+
+    by_town: dict[str, list[ClassifiedNote]] = {t: [] for t in town_order}
+    for n in high_risk:
+        key = n.town if n.town in by_town else ""
+        by_town[key].append(n)
+
+    for town_key in town_order:
+        town_notes = by_town[town_key]
+        if not town_notes:
+            continue
+
+        lines.append(f"### {town_labels[town_key]}")
+        lines.append("")
+        lines.append(f"*{len(town_notes)} high-risk note(s)*")
+        lines.append("")
+
+        by_theme: dict[str, list[ClassifiedNote]] = defaultdict(list)
+        for n in town_notes:
+            for t in n.themes:
+                if t in _HIGH_RISK_THEMES:
+                    by_theme[t].append(n)
+
+        for theme_key in sorted(by_theme.keys()):
+            heading = theme_lookup.get(
+                theme_key,
+                ThemeDef(key=theme_key, heading=theme_key, patterns=[]),
+            ).heading
+            t_notes = by_theme[theme_key]
+
+            lines.append(f"#### {heading}")
+            lines.append("")
+            lines.append("| # | Feature | Pole ID | Location | Map Link | Note |")
+            lines.append("|--:|---------|---------|----------|----------|------|")
+            for i, n in enumerate(t_notes, 1):
+                loc = n.location_label or _fmt_coord(n.latitude, n.longitude)
+                map_link = f"[Open]({n.google_maps_url})" if n.google_maps_url else ""
+                pid = n.pole_id or "—"
+                lines.append(
+                    f"| {i} | {n.feature_name} | {pid} | {loc} | {map_link} | {n.text} |"
+                )
+            lines.append("")
 
     lines.append("")

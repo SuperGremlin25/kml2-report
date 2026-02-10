@@ -1,7 +1,8 @@
 """Streamlit dashboard for kml2report.
 
-Upload KML/KMZ files → preview parsed data → generate field-notes
-summary → (optional) generate formal LLM report → download everything.
+Upload one or more KML/KMZ files -> preview parsed data -> generate
+field-notes summary (optionally filtered by town) -> download as
+Markdown or Word (.docx).
 
 Deploy to Hugging Face Spaces with sdk: streamlit.
 """
@@ -11,8 +12,10 @@ from __future__ import annotations
 import io
 import csv
 import json
+import re
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import streamlit as st
 
@@ -28,30 +31,84 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+_NOMENCLATURE_NOTE = (
+    "\n\n## Utility Nomenclature Note\n\n"
+    'Poles labeled **"EXO"** and **"SBEC"** in this report refer to the same '
+    "cooperative utility: **San Bernard Electric Cooperative (SBEC)**, operating "
+    "under the **EXO** parent brand. Field engineers used both names "
+    "interchangeably during survey. Near Columbus proper (e.g., Montezuma "
+    "Street), some notes explicitly distinguish between SBEC and EXO-branded "
+    "poles on opposite sides of the street; those distinctions are preserved "
+    "as recorded.\n"
+)
+
+# ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
 
 st.sidebar.title("🗺️ KML Field Report Generator")
 st.sidebar.markdown(
-    "Upload a KML or KMZ file to parse field data, generate a "
-    "location-intelligent summary, and optionally produce a formal "
-    "report via LLM."
+    "Upload one or more KML / KMZ files to parse field data, generate a "
+    "location-intelligent summary, and download reports."
 )
 
-uploaded_file = st.sidebar.file_uploader(
+uploaded_files = st.sidebar.file_uploader(
     "Upload KML / KMZ",
     type=["kml", "kmz"],
-    help="Drag and drop or click to browse.",
+    accept_multiple_files=True,
+    help="Drag and drop or click to browse. Multiple files supported.",
+)
+
+st.sidebar.markdown("---")
+
+town_config_file = st.sidebar.file_uploader(
+    "Town config (optional)",
+    type=["json"],
+    help="Upload a town-config.json to define custom town centers for filtering.",
+)
+
+town_centers: list[tuple[str, float, float]] | None = None
+if town_config_file is not None:
+    try:
+        data = json.loads(town_config_file.getvalue().decode("utf-8"))
+        town_centers = [
+            (t["name"], float(t["latitude"]), float(t["longitude"]))
+            for t in data.get("towns", [])
+        ]
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        st.sidebar.error("Invalid town-config.json format.")
+
+town_names: list[str] = []
+if town_centers:
+    town_names = [name for name, _, _ in town_centers]
+
+town_filter: str | None = None
+if town_names:
+    town_choice = st.sidebar.selectbox(
+        "Filter by town",
+        options=["All towns"] + town_names,
+        index=0,
+    )
+    if town_choice != "All towns":
+        town_filter = town_choice
+
+inject_nomenclature = st.sidebar.checkbox(
+    "Add SBEC/EXO nomenclature note",
+    value=True,
+    help="Inject the utility nomenclature note into the generated report.",
 )
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     "**Workflow:**\n"
-    "1. Upload a KML/KMZ file\n"
-    "2. Preview parsed features\n"
-    "3. Generate field-notes summary\n"
-    "4. *(Optional)* Generate formal report via LLM\n"
-    "5. Download outputs"
+    "1. Upload KML/KMZ file(s)\n"
+    "2. *(Optional)* Upload town-config.json & pick a town\n"
+    "3. Preview parsed features\n"
+    "4. Generate field-notes summary\n"
+    "5. Download Markdown or Word (.docx)\n"
 )
 
 
@@ -60,47 +117,55 @@ st.sidebar.markdown(
 # ---------------------------------------------------------------------------
 
 @st.cache_data(show_spinner="Parsing KML data...")
-def parse_uploaded_file(file_bytes: bytes, filename: str) -> list[dict]:
+def parse_uploaded_files(file_data: list[tuple[bytes, str]]) -> list[dict]:
     """Parse uploaded file bytes through the kml2report pipeline."""
     from kml2report.pipeline import run_pipeline
 
-    suffix = Path(filename).suffix.lower()
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(file_bytes)
-        tmp_path = Path(tmp.name)
-
+    tmp_paths: list[Path] = []
     try:
-        rows = run_pipeline(input_paths=[tmp_path])
+        for fbytes, fname in file_data:
+            suffix = Path(fname).suffix.lower()
+            tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+            tmp.write(fbytes)
+            tmp.close()
+            tmp_paths.append(Path(tmp.name))
+        rows = run_pipeline(input_paths=tmp_paths)
     finally:
-        tmp_path.unlink(missing_ok=True)
-
+        for p in tmp_paths:
+            p.unlink(missing_ok=True)
     return rows
 
 
 @st.cache_data(show_spinner="Parsing features...")
-def parse_features(file_bytes: bytes, filename: str):
-    """Parse uploaded file into Feature objects for the summarizer."""
+def parse_features_multi(file_data: list[tuple[bytes, str]]):
+    """Parse uploaded files into Feature objects for the summarizer."""
     from kml2report.kml_parser import parse_file
 
-    suffix = Path(filename).suffix.lower()
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(file_bytes)
-        tmp_path = Path(tmp.name)
+    all_features: list[Any] = []
+    for fbytes, fname in file_data:
+        suffix = Path(fname).suffix.lower()
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(fbytes)
+            tmp_path = Path(tmp.name)
+        try:
+            all_features.extend(parse_file(tmp_path))
+        finally:
+            tmp_path.unlink(missing_ok=True)
+    return all_features
 
-    try:
-        features = parse_file(tmp_path)
-    finally:
-        tmp_path.unlink(missing_ok=True)
 
-    return features
-
-
-def generate_summary(file_bytes: bytes, filename: str) -> str:
+def generate_summary(
+    file_data: list[tuple[bytes, str]],
+    town_filter_val: str | None,
+    town_centers_val: list[tuple[str, float, float]] | None,
+    add_nomenclature: bool,
+) -> str:
     """Generate the location-intelligent Markdown summary with geocoding."""
     from kml2report.summarizer import generate_summary_report
 
-    features = parse_features(file_bytes, filename)
-    doc_name = Path(filename).stem
+    features = parse_features_multi(file_data)
+    names = [fn for _, fn in file_data]
+    doc_name = Path(names[0]).stem if len(names) == 1 else "combined"
 
     progress_bar = st.progress(0, text="Reverse-geocoding coordinates via OpenStreetMap...")
 
@@ -113,9 +178,89 @@ def generate_summary(file_bytes: bytes, filename: str) -> str:
         doc_name=doc_name,
         geocode=True,
         progress_callback=_progress,
+        town_filter=town_filter_val,
+        town_centers=town_centers_val,
     )
     progress_bar.empty()
+
+    if add_nomenclature and result and "No field notes found" not in result:
+        insert_after = "## How to Use This Report"
+        idx = result.find(insert_after)
+        if idx != -1:
+            section_end = result.find("\n## ", idx + len(insert_after))
+            if section_end == -1:
+                section_end = len(result)
+            result = result[:section_end] + _NOMENCLATURE_NOTE + result[section_end:]
+
     return result
+
+
+def md_to_docx_bytes(md_text: str) -> bytes:
+    """Convert Markdown text to a .docx file in memory using python-docx."""
+    from docx import Document
+    from docx.shared import Pt, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+    doc = Document()
+    style = doc.styles["Normal"]
+    style.font.size = Pt(10)
+    style.font.name = "Calibri"
+
+    lines = md_text.split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        if line.startswith("# "):
+            doc.add_heading(line[2:].strip(), level=1)
+        elif line.startswith("## "):
+            doc.add_heading(line[3:].strip(), level=2)
+        elif line.startswith("### "):
+            doc.add_heading(line[4:].strip(), level=3)
+        elif line.startswith("#### "):
+            doc.add_heading(line[5:].strip(), level=4)
+        elif line.startswith("|") and i + 1 < len(lines) and lines[i + 1].startswith("|"):
+            table_lines = []
+            while i < len(lines) and lines[i].startswith("|"):
+                stripped = lines[i].strip()
+                if not re.match(r"^\|[\s\-:|]+\|$", stripped):
+                    cells = [c.strip() for c in stripped.strip("|").split("|")]
+                    table_lines.append(cells)
+                i += 1
+            i -= 1
+            if table_lines:
+                ncols = max(len(r) for r in table_lines)
+                tbl = doc.add_table(rows=len(table_lines), cols=ncols, style="Light Grid Accent 1")
+                for ri, row_cells in enumerate(table_lines):
+                    for ci, val in enumerate(row_cells):
+                        if ci < ncols:
+                            cell = tbl.cell(ri, ci)
+                            cell.text = _strip_md_formatting(val)
+                            for paragraph in cell.paragraphs:
+                                paragraph.style.font.size = Pt(8)
+        elif line.startswith("- "):
+            doc.add_paragraph(
+                _strip_md_formatting(line[2:].strip()), style="List Bullet"
+            )
+        elif line.strip() == "---":
+            doc.add_paragraph("")
+        elif line.strip():
+            doc.add_paragraph(_strip_md_formatting(line))
+
+        i += 1
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def _strip_md_formatting(text: str) -> str:
+    """Remove bold/italic markdown markers from text."""
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"\*(.+?)\*", r"\1", text)
+    text = re.sub(r"`(.+?)`", r"\1", text)
+    text = re.sub(r"\[(.+?)\]\(.+?\)", r"\1", text)
+    return text
 
 
 def rows_to_csv(rows: list[dict]) -> str:
@@ -145,20 +290,19 @@ def rows_to_json(rows: list[dict]) -> str:
 # Main content
 # ---------------------------------------------------------------------------
 
-if uploaded_file is None:
+if not uploaded_files:
     st.title("KML Field Report Generator")
     st.markdown(
         """
         ### Get started
 
-        Upload a **KML** or **KMZ** file using the sidebar to:
+        Upload one or more **KML** or **KMZ** files using the sidebar to:
 
         - **Preview** all parsed features in a searchable table
         - **Generate** a location-intelligent field-notes summary with
           coordinates, road names, bearings, and geographic corridors
-        - **Produce** a formal professional report via LLM
-          (Hugging Face, OpenAI, Anthropic, or Ollama)
-        - **Download** CSV, JSON, summary Markdown, and formal report
+        - **Filter** by town using a portable town-config.json
+        - **Download** CSV, JSON, Markdown, or Word (.docx) reports
 
         ---
 
@@ -168,9 +312,12 @@ if uploaded_file is None:
     )
     st.stop()
 
-# --- File uploaded — process it ---
-file_bytes = uploaded_file.getvalue()
-filename = uploaded_file.name
+# --- Files uploaded — process them ---
+file_data: list[tuple[bytes, str]] = [
+    (f.getvalue(), f.name) for f in uploaded_files
+]
+file_names = [f.name for f in uploaded_files]
+stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
 
 tab_preview, tab_summary, tab_report, tab_download = st.tabs(
     ["📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads"]
@@ -183,12 +330,12 @@ tab_preview, tab_summary, tab_report, tab_download = st.tabs(
 with tab_preview:
     st.header("Parsed Features")
 
-    rows = parse_uploaded_file(file_bytes, filename)
+    rows = parse_uploaded_files(file_data)
 
     if not rows:
-        st.warning("No features found in the uploaded file.")
+        st.warning("No features found in the uploaded file(s).")
     else:
-        st.success(f"**{len(rows):,}** features parsed from `{filename}`")
+        st.success(f"**{len(rows):,}** features parsed from **{len(file_names)}** file(s)")
 
         cols = list(rows[0].keys())
         display_cols = st.multiselect(
@@ -211,11 +358,13 @@ with tab_preview:
 
 with tab_summary:
     st.header("Field Notes Summary")
+    if town_filter:
+        st.info(f"Filtered to town: **{town_filter}**")
 
-    summary_md = generate_summary(file_bytes, filename)
+    summary_md = generate_summary(file_data, town_filter, town_centers, inject_nomenclature)
 
     if not summary_md or "No field notes found" in summary_md:
-        st.warning("No field notes found in the uploaded file.")
+        st.warning("No field notes found in the uploaded file(s).")
     else:
         st.markdown(summary_md)
 
@@ -297,7 +446,7 @@ with tab_report:
     )
 
     if generate_btn:
-        summary_md = generate_summary(file_bytes, filename)
+        summary_md = generate_summary(file_data, town_filter, town_centers, inject_nomenclature)
         if "No field notes found" in summary_md:
             st.error("No field notes to send to LLM.")
         else:
@@ -326,16 +475,15 @@ with tab_report:
 with tab_download:
     st.header("Download Reports")
 
-    rows = parse_uploaded_file(file_bytes, filename)
-    summary_md = generate_summary(file_bytes, filename)
-    stem = Path(filename).stem
+    rows = parse_uploaded_files(file_data)
+    summary_md = generate_summary(file_data, town_filter, town_centers, inject_nomenclature)
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         if rows:
             st.download_button(
-                "📊 Download CSV",
+                "📊 CSV",
                 data=rows_to_csv(rows),
                 file_name=f"{stem}-report.csv",
                 mime="text/csv",
@@ -345,7 +493,7 @@ with tab_download:
     with col2:
         if rows:
             st.download_button(
-                "📊 Download JSON",
+                "📊 JSON",
                 data=rows_to_json(rows),
                 file_name=f"{stem}-report.json",
                 mime="application/json",
@@ -355,7 +503,7 @@ with tab_download:
     with col3:
         if summary_md and "No field notes found" not in summary_md:
             st.download_button(
-                "📝 Download Summary (.md)",
+                "📝 Summary (.md)",
                 data=summary_md,
                 file_name=f"{stem}-field-notes.md",
                 mime="text/markdown",
@@ -363,9 +511,24 @@ with tab_download:
             )
 
     with col4:
+        if summary_md and "No field notes found" not in summary_md:
+            try:
+                docx_bytes = md_to_docx_bytes(summary_md)
+                st.download_button(
+                    "📝 Summary (.docx)",
+                    data=docx_bytes,
+                    file_name=f"{stem}-field-notes.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                )
+            except Exception as exc:
+                st.button("📝 .docx unavailable", disabled=True, use_container_width=True,
+                          help=f"python-docx error: {exc}")
+
+    with col5:
         if st.session_state.get("formal_report"):
             st.download_button(
-                "📄 Download Formal Report (.md)",
+                "📄 Formal Report (.md)",
                 data=st.session_state.formal_report,
                 file_name=f"{stem}-formal-report.md",
                 mime="text/markdown",

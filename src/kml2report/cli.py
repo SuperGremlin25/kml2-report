@@ -137,7 +137,15 @@ def _print_preview(rows: list[dict[str, str]], max_rows: int = 10) -> None:
     "--no-geocode", is_flag=True, default=False,
     help="Skip reverse geocoding (faster, but no real street/town names).",
 )
-def summarize(inputs: tuple[str, ...], output_path: str | None, no_geocode: bool) -> None:
+@click.option(
+    "--town", "town_filter", default=None,
+    help="Filter report to a single town name (must match a name in the town config).",
+)
+@click.option(
+    "--town-config", "town_config_path", default=None, type=click.Path(exists=True),
+    help="Path to a town-config.json file for portable town center definitions.",
+)
+def summarize(inputs: tuple[str, ...], output_path: str | None, no_geocode: bool, town_filter: str | None, town_config_path: str | None) -> None:
     """Generate a structured field-notes summary report from KML/KMZ files.
 
     Reads all Placemark descriptions, classifies them by theme
@@ -157,12 +165,24 @@ def summarize(inputs: tuple[str, ...], output_path: str | None, no_geocode: bool
         kml2report summarize myfile.kml --no-geocode
     """
     from kml2report.kml_parser import parse_files
-    from kml2report.summarizer import generate_summary_report
+    from kml2report.summarizer import generate_summary_report, load_town_config
 
     expanded = _expand_inputs(inputs)
     if not expanded:
         click.echo("No matching KML/KMZ files found.", err=True)
         sys.exit(1)
+
+    town_centers = load_town_config(town_config_path)
+    valid_town_names = [name for name, _, _ in town_centers]
+    if town_filter:
+        matched = [n for n in valid_town_names if n.lower() == town_filter.lower()]
+        if not matched:
+            click.echo(
+                f"Unknown town '{town_filter}'. Valid towns: {', '.join(valid_town_names)}",
+                err=True,
+            )
+            sys.exit(1)
+        town_filter = matched[0]
 
     click.echo(f"Parsing {len(expanded)} file(s)...", err=True)
     features = parse_files([str(p) for p in expanded])
@@ -176,6 +196,9 @@ def summarize(inputs: tuple[str, ...], output_path: str | None, no_geocode: bool
     cache_path = Path(output_path).parent / ".geocache.json" if output_path else None
 
     doc_name = ", ".join(p.stem for p in expanded)
+    if town_filter:
+        doc_name = f"{town_filter} — {doc_name}"
+        click.echo(f"Filtering to town: {town_filter}", err=True)
     if not no_geocode:
         click.echo("Reverse-geocoding coordinates via OpenStreetMap...", err=True)
     report = generate_summary_report(
@@ -184,6 +207,8 @@ def summarize(inputs: tuple[str, ...], output_path: str | None, no_geocode: bool
         geocode=not no_geocode,
         cache_path=cache_path,
         progress_callback=_geo_progress if not no_geocode else None,
+        town_filter=town_filter,
+        town_centers=town_centers,
     )
 
     if output_path:
@@ -270,6 +295,76 @@ def report(
         click.echo(f"Formal report written to {output_path}", err=True)
     else:
         click.echo(formal)
+
+
+@main.command()
+@click.option(
+    "--v2", "target_kml", required=True, type=click.Path(exists=True),
+    help="Path to the target KML file (e.g. Colorado County V2.kml).",
+)
+@click.option(
+    "--sources", "-s", "source_kmls", required=True, multiple=True,
+    type=click.Path(exists=True),
+    help="One or more source KML/KMZ files containing field notes.",
+)
+@click.option(
+    "--tolerance", "-t", default=15.0, type=float,
+    help="Match radius in meters (default 15).",
+)
+@click.option(
+    "--town-config", "town_config_path", default=None, type=click.Path(exists=True),
+    help="Path to a town-config.json file.",
+)
+@click.option(
+    "--out", "-o", "output_path", default=None, type=click.Path(),
+    help="Output file path (.kmz or .kml). Defaults to '<target> - Annotated.kmz'.",
+)
+def inject(
+    target_kml: str,
+    source_kmls: tuple[str, ...],
+    tolerance: float,
+    town_config_path: str | None,
+    output_path: str | None,
+) -> None:
+    """Inject classified field notes into a target KML and produce an annotated KMZ.
+
+    Spatially matches notes from source KML files to the nearest placemarks
+    in the target KML within the given tolerance (default 15 m). Matched notes
+    are appended to the placemark's description. Unmatched notes are added as
+    new yellow-pin placemarks in a Field_Notes folder.
+
+    Examples:
+
+        kml2report inject --v2 "Colorado County V2.kml" -s source1.kml -s source2.kml
+
+        kml2report inject --v2 target.kml -s notes.kml --tolerance 25 --out annotated.kmz
+    """
+    from kml2report.injector import inject_notes_into_kml
+
+    if output_path is None:
+        stem = Path(target_kml).stem
+        output_path = str(Path(target_kml).parent / f"{stem} - Annotated.kmz")
+
+    click.echo(f"Target KML: {target_kml}", err=True)
+    click.echo(f"Source files: {len(source_kmls)}", err=True)
+    click.echo(f"Match tolerance: {tolerance} m", err=True)
+    click.echo("Parsing and matching...", err=True)
+
+    summary = inject_notes_into_kml(
+        target_kml_path=target_kml,
+        source_kml_paths=list(source_kmls),
+        output_path=output_path,
+        tolerance_m=tolerance,
+        town_config_path=town_config_path,
+    )
+
+    click.echo("", err=True)
+    click.echo("=== Injection Summary ===", err=True)
+    click.echo(f"  V2 placemarks:      {summary['v2_placemarks']:,}", err=True)
+    click.echo(f"  Total field notes:   {summary['total_notes']:,}", err=True)
+    click.echo(f"  Matched to V2:       {summary['matched_notes']:,} notes -> {summary['matched_placemarks']:,} placemarks", err=True)
+    click.echo(f"  New pins (unmatched): {summary['unmatched_notes']:,}", err=True)
+    click.echo(f"  Output: {output_path}", err=True)
 
 
 @main.command()
