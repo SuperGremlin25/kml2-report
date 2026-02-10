@@ -82,12 +82,16 @@ town_centers: list[tuple[str, float, float]] | None = None
 if town_config_file is not None:
     try:
         data = json.loads(town_config_file.getvalue().decode("utf-8"))
+        # Accept both {"towns": [...]} and bare [...]
+        towns_list = data.get("towns", data) if isinstance(data, dict) else data
+        if not isinstance(towns_list, list):
+            raise ValueError("Expected a list of towns")
         town_centers = [
             (t["name"], float(t["latitude"]), float(t["longitude"]))
-            for t in data.get("towns", [])
+            for t in towns_list
         ]
-    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-        st.sidebar.error("Invalid town-config.json format.")
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError, AttributeError) as exc:
+        st.sidebar.error(f"Invalid town-config.json — {exc}")
 
 town_names: list[str] = []
 if town_centers:
