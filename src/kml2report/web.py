@@ -16,6 +16,17 @@ from kml2report.pipeline import run_pipeline
 
 app = FastAPI(title="kml2report", version="0.1.0")
 
+def _safe_suffix(filename: str | None) -> str:
+    """Return a safe file extension for temp file creation.
+
+    Only '.kmz' is preserved (needed for zip-based KMZ handling).
+    Everything else defaults to '.kml'.  The user-supplied filename
+    is never passed to Path or any filesystem API.
+    """
+    if filename and filename.lower().endswith(".kmz"):
+        return ".kmz"
+    return ".kml"
+
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
@@ -42,7 +53,7 @@ async def index(request: Request):
 @app.post("/parse", response_class=HTMLResponse)
 async def parse_upload(request: Request, file: UploadFile = File(...)):
     """Accept a KML/KMZ upload, parse it, and show a preview table."""
-    suffix = Path(file.filename or "upload.kml").suffix.lower()
+    suffix = _safe_suffix(file.filename)
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp.write(await file.read())
         tmp_path = Path(tmp.name)
@@ -62,7 +73,7 @@ async def parse_upload(request: Request, file: UploadFile = File(...)):
 @app.post("/export/csv")
 async def export_csv_endpoint(file: UploadFile = File(...)):
     """Parse and return CSV download."""
-    suffix = Path(file.filename or "upload.kml").suffix.lower()
+    suffix = _safe_suffix(file.filename)
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp.write(await file.read())
         tmp_path = Path(tmp.name)
@@ -91,7 +102,7 @@ async def export_csv_endpoint(file: UploadFile = File(...)):
 @app.post("/export/json")
 async def export_json_endpoint(file: UploadFile = File(...)):
     """Parse and return JSON download."""
-    suffix = Path(file.filename or "upload.kml").suffix.lower()
+    suffix = _safe_suffix(file.filename)
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp.write(await file.read())
         tmp_path = Path(tmp.name)

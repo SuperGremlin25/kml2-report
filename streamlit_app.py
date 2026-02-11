@@ -331,8 +331,8 @@ file_data: list[tuple[bytes, str]] = [
 file_names = [f.name for f in uploaded_files]
 stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
 
-tab_preview, tab_summary, tab_report, tab_download = st.tabs(
-    ["📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads"]
+tab_preview, tab_summary, tab_report, tab_download, tab_inject = st.tabs(
+    ["📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads", "🗺️ KML Injector"]
 )
 
 # ---------------------------------------------------------------------------
@@ -559,3 +559,130 @@ with tab_download:
         "corridor. Paste them into Google Maps or open the KML side-by-side "
         "to cross-reference locations."
     )
+
+# ---------------------------------------------------------------------------
+# Tab 5: KML Injector
+# ---------------------------------------------------------------------------
+
+with tab_inject:
+    st.header("KML Note Injector")
+    st.markdown(
+        "Spatially match field notes from **source KML files** to placemarks in a "
+        "**target KML** (e.g. a V2 design file) and produce an annotated KMZ. "
+        "Matched notes are injected into placemark descriptions; unmatched notes "
+        "become new yellow-pin placemarks in a **Field_Notes** folder."
+    )
+
+    col_target, col_sources = st.columns(2)
+
+    with col_target:
+        inject_target = st.file_uploader(
+            "Target KML (design file)",
+            type=["kml", "kmz"],
+            key="inject_target",
+            help="The KML/KMZ to inject notes into (e.g. Colorado County V2.kml).",
+        )
+
+    with col_sources:
+        inject_sources = st.file_uploader(
+            "Source KML(s) with field notes",
+            type=["kml", "kmz"],
+            accept_multiple_files=True,
+            key="inject_sources",
+            help="One or more KML/KMZ files containing field observations.",
+        )
+
+    inject_tolerance = st.slider(
+        "Match tolerance (meters)",
+        min_value=5,
+        max_value=50,
+        value=15,
+        step=1,
+        help="Maximum distance in meters to match a note to a placemark. "
+             "15 m (~50 ft) is recommended.",
+    )
+
+    inject_btn = st.button(
+        "🚀 Inject Notes",
+        type="primary",
+        use_container_width=True,
+        disabled=not (inject_target and inject_sources),
+    )
+
+    if "inject_summary" not in st.session_state:
+        st.session_state.inject_summary = None
+        st.session_state.inject_kmz_bytes = None
+
+    if inject_btn and inject_target and inject_sources:
+        with st.spinner("Parsing and matching notes..."):
+            try:
+                from kml2report.injector import inject_notes_into_kml
+
+                target_suffix = Path(inject_target.name).suffix.lower()
+                with tempfile.NamedTemporaryFile(suffix=target_suffix, delete=False) as tmp_t:
+                    tmp_t.write(inject_target.getvalue())
+                    target_path = Path(tmp_t.name)
+
+                source_paths: list[Path] = []
+                for src in inject_sources:
+                    src_suffix = Path(src.name).suffix.lower()
+                    with tempfile.NamedTemporaryFile(suffix=src_suffix, delete=False) as tmp_s:
+                        tmp_s.write(src.getvalue())
+                        source_paths.append(Path(tmp_s.name))
+
+                out_path = target_path.with_suffix(".annotated.kmz")
+
+                tc_path = None
+                if town_centers:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".json", delete=False, mode="w", encoding="utf-8"
+                    ) as tmp_tc:
+                        json.dump(
+                            {"towns": [{"name": n, "latitude": la, "longitude": lo}
+                                       for n, la, lo in town_centers]},
+                            tmp_tc,
+                        )
+                        tc_path = tmp_tc.name
+
+                summary = inject_notes_into_kml(
+                    target_kml_path=str(target_path),
+                    source_kml_paths=[str(p) for p in source_paths],
+                    output_path=str(out_path),
+                    tolerance_m=float(inject_tolerance),
+                    town_config_path=tc_path,
+                )
+
+                kmz_bytes = out_path.read_bytes()
+
+                target_path.unlink(missing_ok=True)
+                for p in source_paths:
+                    p.unlink(missing_ok=True)
+                out_path.unlink(missing_ok=True)
+                if tc_path:
+                    Path(tc_path).unlink(missing_ok=True)
+
+                st.session_state.inject_summary = summary
+                st.session_state.inject_kmz_bytes = kmz_bytes
+
+            except Exception as exc:
+                st.error(f"Injection failed: {exc}")
+
+    if st.session_state.inject_summary:
+        s = st.session_state.inject_summary
+        st.markdown("---")
+        st.subheader("Injection Results")
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("V2 Placemarks", f"{s['v2_placemarks']:,}")
+        m2.metric("Total Notes", f"{s['total_notes']:,}")
+        m3.metric("Matched", f"{s['matched_notes']:,}")
+        m4.metric("New Pins", f"{s['unmatched_notes']:,}")
+
+        out_name = Path(inject_target.name).stem + " - Annotated.kmz" if inject_target else "annotated.kmz"
+        st.download_button(
+            "⬇️ Download Annotated KMZ",
+            data=st.session_state.inject_kmz_bytes,
+            file_name=out_name,
+            mime="application/vnd.google-earth.kmz",
+            use_container_width=True,
+        )

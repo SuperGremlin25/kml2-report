@@ -388,5 +388,23 @@ def serve(host: str, port: int) -> None:
     start_server(host=host, port=port)
 
 
+@main.command()
+@click.option("--port", "-p", default=8501, type=int, help="Port number for Streamlit.")
+def ui(port: int) -> None:
+    """Launch the Streamlit dashboard locally in your browser."""
+    import subprocess
+
+    app_path = Path(__file__).resolve().parents[2] / "streamlit_app.py"
+    if not app_path.exists():
+        click.echo(f"Streamlit app not found at {app_path}", err=True)
+        sys.exit(1)
+
+    click.echo(f"Starting Streamlit dashboard at http://localhost:{port}")
+    subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", str(app_path),
+         "--server.port", str(port)],
+    )
+
+
 if __name__ == "__main__":
     main()
