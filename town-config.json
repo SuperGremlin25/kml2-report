@@ -1,21 +1,4660 @@
-{
-  "county": "Colorado",
-  "state": "Texas",
-  "towns": [
-    {
-      "name": "Sheridan",
-      "latitude": 29.5029,
-      "longitude": -96.6653
-    },
-    {
-      "name": "Garwood",
-      "latitude": 29.4500,
-      "longitude": -96.4000
-    },
-    {
-      "name": "Columbus",
-      "latitude": 29.7065,
-      "longitude": -96.5397
-    }
-  ]
-}
+[
+  {
+    "state": "Oklahoma",
+    "towns": [
+      {
+        "name": "Oklahoma City",
+        "latitude": 35.4676,
+        "longitude": -97.5164,
+        "population": 727836
+      },
+      {
+        "name": "Tulsa",
+        "latitude": 36.154,
+        "longitude": -95.9928,
+        "population": 415899
+      },
+      {
+        "name": "Norman",
+        "latitude": 35.2226,
+        "longitude": -97.4395,
+        "population": 132425
+      },
+      {
+        "name": "Broken Arrow",
+        "latitude": 36.0526,
+        "longitude": -95.7908,
+        "population": 118180
+      },
+      {
+        "name": "Lawton",
+        "latitude": 34.6086,
+        "longitude": -98.3959,
+        "population": 93027
+      },
+      {
+        "name": "Edmond",
+        "latitude": 35.6528,
+        "longitude": -97.4781,
+        "population": 96348
+      },
+      {
+        "name": "Moore",
+        "latitude": 35.3395,
+        "longitude": -97.4867,
+        "population": 62793
+      },
+      {
+        "name": "Midwest City",
+        "latitude": 35.4495,
+        "longitude": -97.3967,
+        "population": 57371
+      },
+      {
+        "name": "Enid",
+        "latitude": 36.3956,
+        "longitude": -97.8784,
+        "population": 49338
+      },
+      {
+        "name": "Stillwater",
+        "latitude": 36.1156,
+        "longitude": -97.0584,
+        "population": 50955
+      },
+      {
+        "name": "Muskogee",
+        "latitude": 35.7479,
+        "longitude": -95.3697,
+        "population": 36447
+      },
+      {
+        "name": "Bartlesville",
+        "latitude": 36.7473,
+        "longitude": -95.9808,
+        "population": 36073
+      },
+      {
+        "name": "Owasso",
+        "latitude": 36.2695,
+        "longitude": -95.8547,
+        "population": 40722
+      },
+      {
+        "name": "Shawnee",
+        "latitude": 35.3273,
+        "longitude": -96.9253,
+        "population": 31361
+      },
+      {
+        "name": "Ponca City",
+        "latitude": 36.707,
+        "longitude": -97.0856,
+        "population": 23644
+      },
+      {
+        "name": "Ardmore",
+        "latitude": 34.1743,
+        "longitude": -97.1436,
+        "population": 25197
+      },
+      {
+        "name": "Duncan",
+        "latitude": 34.5023,
+        "longitude": -97.9578,
+        "population": 22517
+      },
+      {
+        "name": "Sapulpa",
+        "latitude": 35.9984,
+        "longitude": -96.1142,
+        "population": 22139
+      },
+      {
+        "name": "Bixby",
+        "latitude": 35.9423,
+        "longitude": -95.8836,
+        "population": 32513
+      },
+      {
+        "name": "Yukon",
+        "latitude": 35.5067,
+        "longitude": -97.7625,
+        "population": 29574
+      },
+      {
+        "name": "Claremore",
+        "latitude": 36.3126,
+        "longitude": -95.6161,
+        "population": 21557
+      },
+      {
+        "name": "Chickasha",
+        "latitude": 35.0523,
+        "longitude": -97.9378,
+        "population": 16474
+      },
+      {
+        "name": "Ada",
+        "latitude": 34.7743,
+        "longitude": -96.6786,
+        "population": 17204
+      },
+      {
+        "name": "McAlester",
+        "latitude": 34.9334,
+        "longitude": -95.7697,
+        "population": 18379
+      },
+      {
+        "name": "Sand Springs",
+        "latitude": 36.1395,
+        "longitude": -96.1089,
+        "population": 20032
+      },
+      {
+        "name": "Jenks",
+        "latitude": 35.9723,
+        "longitude": -95.9811,
+        "population": 26049
+      },
+      {
+        "name": "Altus",
+        "latitude": 34.6381,
+        "longitude": -99.334,
+        "population": 18833
+      },
+      {
+        "name": "El Reno",
+        "latitude": 35.5323,
+        "longitude": -97.9547,
+        "population": 18510
+      },
+      {
+        "name": "Guthrie",
+        "latitude": 35.8784,
+        "longitude": -97.4253,
+        "population": 11693
+      },
+      {
+        "name": "Weatherford",
+        "latitude": 35.5264,
+        "longitude": -98.7044,
+        "population": 12029
+      },
+      {
+        "name": "Woodward",
+        "latitude": 36.4337,
+        "longitude": -99.394,
+        "population": 12054
+      },
+      {
+        "name": "Pryor Creek",
+        "latitude": 36.3084,
+        "longitude": -95.3167,
+        "population": 9766
+      },
+      {
+        "name": "Durant",
+        "latitude": 33.994,
+        "longitude": -96.3708,
+        "population": 19455
+      },
+      {
+        "name": "Miami",
+        "latitude": 36.8737,
+        "longitude": -94.8772,
+        "population": 12597
+      },
+      {
+        "name": "Tahlequah",
+        "latitude": 35.9151,
+        "longitude": -94.9697,
+        "population": 17176
+      },
+      {
+        "name": "Poteau",
+        "latitude": 35.0523,
+        "longitude": -94.62,
+        "population": 8964
+      },
+      {
+        "name": "Elk City",
+        "latitude": 35.412,
+        "longitude": -99.4043,
+        "population": 12326
+      },
+      {
+        "name": "Vinita",
+        "latitude": 36.6367,
+        "longitude": -95.1547,
+        "population": 5767
+      },
+      {
+        "name": "Guymon",
+        "latitude": 36.6837,
+        "longitude": -101.4807,
+        "population": 12186
+      },
+      {
+        "name": "Idabel",
+        "latitude": 33.8951,
+        "longitude": -94.8283,
+        "population": 6944
+      },
+      {
+        "name": "Seminole",
+        "latitude": 35.2245,
+        "longitude": -96.67,
+        "population": 7062
+      },
+      {
+        "name": "Anadarko",
+        "latitude": 35.0726,
+        "longitude": -98.2431,
+        "population": 6249
+      },
+      {
+        "name": "Cushing",
+        "latitude": 35.9848,
+        "longitude": -96.7672,
+        "population": 7797
+      },
+      {
+        "name": "Wagoner",
+        "latitude": 35.9584,
+        "longitude": -95.3697,
+        "population": 9175
+      },
+      {
+        "name": "Hugo",
+        "latitude": 34.0112,
+        "longitude": -95.5072,
+        "population": 5215
+      },
+      {
+        "name": "Pauls Valley",
+        "latitude": 34.7401,
+        "longitude": -97.2228,
+        "population": 6150
+      },
+      {
+        "name": "Okmulgee",
+        "latitude": 35.6237,
+        "longitude": -95.9672,
+        "population": 11031
+      },
+      {
+        "name": "Sallisaw",
+        "latitude": 35.4606,
+        "longitude": -94.7978,
+        "population": 8563
+      },
+      {
+        "name": "Pryor",
+        "latitude": 36.3084,
+        "longitude": -95.3167,
+        "population": 9766
+      },
+      {
+        "name": "Wewoka",
+        "latitude": 35.157,
+        "longitude": -96.4897,
+        "population": 2958
+      },
+      {
+        "name": "Coalgate",
+        "latitude": 34.5376,
+        "longitude": -96.2192,
+        "population": 1952
+      },
+      {
+        "name": "Tishomingo",
+        "latitude": 34.2376,
+        "longitude": -96.6797,
+        "population": 3037
+      },
+      {
+        "name": "Sulphur",
+        "latitude": 34.5126,
+        "longitude": -96.9694,
+        "population": 4789
+      },
+      {
+        "name": "Purcell",
+        "latitude": 34.9776,
+        "longitude": -97.3611,
+        "population": 6196
+      },
+      {
+        "name": "Lindsay",
+        "latitude": 34.8401,
+        "longitude": -97.5989,
+        "population": 2929
+      },
+      {
+        "name": "Broken Bow",
+        "latitude": 34.029,
+        "longitude": -94.7397,
+        "population": 4143
+      },
+      {
+        "name": "Stigler",
+        "latitude": 35.2548,
+        "longitude": -95.1231,
+        "population": 2610
+      },
+      {
+        "name": "Wilburton",
+        "latitude": 34.9195,
+        "longitude": -95.3086,
+        "population": 2825
+      },
+      {
+        "name": "Antlers",
+        "latitude": 34.2334,
+        "longitude": -95.6233,
+        "population": 2260
+      },
+      {
+        "name": "Atoka",
+        "latitude": 34.3862,
+        "longitude": -96.1283,
+        "population": 3018
+      },
+      {
+        "name": "Holdenville",
+        "latitude": 35.0831,
+        "longitude": -96.3994,
+        "population": 5414
+      },
+      {
+        "name": "Waurika",
+        "latitude": 34.1673,
+        "longitude": -97.9919,
+        "population": 1945
+      },
+      {
+        "name": "Mangum",
+        "latitude": 34.8737,
+        "longitude": -99.5039,
+        "population": 2761
+      },
+      {
+        "name": "Sayre",
+        "latitude": 35.2934,
+        "longitude": -99.6375,
+        "population": 4152
+      },
+      {
+        "name": "Clinton",
+        "latitude": 35.5153,
+        "longitude": -98.9684,
+        "population": 8938
+      },
+      {
+        "name": "Hobart",
+        "latitude": 34.992,
+        "longitude": -99.0936,
+        "population": 3567
+      },
+      {
+        "name": "Henryetta",
+        "latitude": 35.442,
+        "longitude": -95.9769,
+        "population": 5610
+      },
+      {
+        "name": "Checotah",
+        "latitude": 35.4706,
+        "longitude": -95.5228,
+        "population": 3304
+      },
+      {
+        "name": "Eufaula",
+        "latitude": 35.2834,
+        "longitude": -95.5808,
+        "population": 2836
+      },
+      {
+        "name": "Heavener",
+        "latitude": 34.8884,
+        "longitude": -94.6025,
+        "population": 3367
+      },
+      {
+        "name": "Spiro",
+        "latitude": 35.2481,
+        "longitude": -94.6228,
+        "population": 2252
+      },
+      {
+        "name": "Roland",
+        "latitude": 35.4173,
+        "longitude": -94.5078,
+        "population": 3503
+      },
+      {
+        "name": "Muldrow",
+        "latitude": 35.4059,
+        "longitude": -94.5964,
+        "population": 3439
+      },
+      {
+        "name": "Stilwell",
+        "latitude": 35.8181,
+        "longitude": -94.6364,
+        "population": 4046
+      },
+      {
+        "name": "Jay",
+        "latitude": 36.4195,
+        "longitude": -94.7994,
+        "population": 2624
+      },
+      {
+        "name": "Collinsville",
+        "latitude": 36.3665,
+        "longitude": -95.8411,
+        "population": 7756
+      },
+      {
+        "name": "Catoosa",
+        "latitude": 36.1895,
+        "longitude": -95.7447,
+        "population": 7917
+      },
+      {
+        "name": "Coweta",
+        "latitude": 35.9634,
+        "longitude": -95.6497,
+        "population": 10275
+      },
+      {
+        "name": "Afton",
+        "latitude": 36.6962,
+        "longitude": -94.9681,
+        "population": 908
+      },
+      {
+        "name": "Grove",
+        "latitude": 36.5934,
+        "longitude": -94.7731,
+        "population": 7089
+      },
+      {
+        "name": "Langley",
+        "latitude": 36.4734,
+        "longitude": -95.0378,
+        "population": 718
+      },
+      {
+        "name": "Nowata",
+        "latitude": 36.7003,
+        "longitude": -95.6408,
+        "population": 3576
+      },
+      {
+        "name": "Dewey",
+        "latitude": 36.7962,
+        "longitude": -95.9322,
+        "population": 3494
+      },
+      {
+        "name": "Pawhuska",
+        "latitude": 36.6709,
+        "longitude": -96.3339,
+        "population": 3334
+      },
+      {
+        "name": "Hominy",
+        "latitude": 36.4209,
+        "longitude": -96.3936,
+        "population": 2546
+      },
+      {
+        "name": "Skiatook",
+        "latitude": 36.3645,
+        "longitude": -96.0025,
+        "population": 8028
+      },
+      {
+        "name": "Hartshorne",
+        "latitude": 34.8434,
+        "longitude": -95.5608,
+        "population": 2033
+      },
+      {
+        "name": "Madill",
+        "latitude": 34.0934,
+        "longitude": -96.7711,
+        "population": 3900
+      },
+      {
+        "name": "Marlow",
+        "latitude": 34.6481,
+        "longitude": -97.9578,
+        "population": 4432
+      },
+      {
+        "name": "Elmore City",
+        "latitude": 34.624,
+        "longitude": -97.4089,
+        "population": 702
+      },
+      {
+        "name": "Wynnewood",
+        "latitude": 34.6473,
+        "longitude": -97.1636,
+        "population": 2083
+      },
+      {
+        "name": "Davis",
+        "latitude": 34.5026,
+        "longitude": -97.1186,
+        "population": 2836
+      },
+      {
+        "name": "Del City",
+        "latitude": 35.4423,
+        "longitude": -97.4408,
+        "population": 21424
+      },
+      {
+        "name": "Choctaw",
+        "latitude": 35.4959,
+        "longitude": -97.2697,
+        "population": 14285
+      },
+      {
+        "name": "Harrah",
+        "latitude": 35.4895,
+        "longitude": -97.1639,
+        "population": 6376
+      },
+      {
+        "name": "Luther",
+        "latitude": 35.6601,
+        "longitude": -97.205,
+        "population": 1431
+      },
+      {
+        "name": "Langston",
+        "latitude": 35.9309,
+        "longitude": -97.2578,
+        "population": 1724
+      },
+      {
+        "name": "Alva",
+        "latitude": 36.8042,
+        "longitude": -98.6658,
+        "population": 4823
+      },
+      {
+        "name": "Cherokee",
+        "latitude": 36.7526,
+        "longitude": -98.355,
+        "population": 1535
+      },
+      {
+        "name": "Fairview",
+        "latitude": 36.2681,
+        "longitude": -98.4825,
+        "population": 2532
+      },
+      {
+        "name": "Watonga",
+        "latitude": 35.8473,
+        "longitude": -98.4136,
+        "population": 3302
+      },
+      {
+        "name": "Blackwell",
+        "latitude": 36.8059,
+        "longitude": -97.2817,
+        "population": 6939
+      },
+      {
+        "name": "Tonkawa",
+        "latitude": 36.6762,
+        "longitude": -97.3033,
+        "population": 3062
+      },
+      {
+        "name": "Perry",
+        "latitude": 36.2898,
+        "longitude": -97.2881,
+        "population": 4815
+      },
+      {
+        "name": "Kingfisher",
+        "latitude": 35.8609,
+        "longitude": -97.9322,
+        "population": 5379
+      },
+      {
+        "name": "Hennessey",
+        "latitude": 36.1078,
+        "longitude": -97.9003,
+        "population": 2214
+      },
+      {
+        "name": "Okeene",
+        "latitude": 36.1187,
+        "longitude": -98.3156,
+        "population": 1121
+      },
+      {
+        "name": "Medford",
+        "latitude": 36.8009,
+        "longitude": -97.7378,
+        "population": 986
+      },
+      {
+        "name": "Newkirk",
+        "latitude": 36.8851,
+        "longitude": -97.0539,
+        "population": 2203
+      },
+      {
+        "name": "Glenpool",
+        "latitude": 35.9531,
+        "longitude": -96.0031,
+        "population": 13908
+      },
+      {
+        "name": "Oologah",
+        "latitude": 36.4398,
+        "longitude": -95.7014,
+        "population": 1215
+      },
+      {
+        "name": "Verdigris",
+        "latitude": 36.2509,
+        "longitude": -95.6878,
+        "population": 4087
+      },
+      {
+        "name": "Inola",
+        "latitude": 36.1537,
+        "longitude": -95.5072,
+        "population": 1970
+      },
+      {
+        "name": "Beggs",
+        "latitude": 35.7437,
+        "longitude": -96.0744,
+        "population": 1317
+      },
+      {
+        "name": "Bristow",
+        "latitude": 35.8337,
+        "longitude": -96.3911,
+        "population": 4178
+      },
+      {
+        "name": "Drumright",
+        "latitude": 35.987,
+        "longitude": -96.6044,
+        "population": 2716
+      },
+      {
+        "name": "Stroud",
+        "latitude": 35.7487,
+        "longitude": -96.6561,
+        "population": 2628
+      },
+      {
+        "name": "Chandler",
+        "latitude": 35.702,
+        "longitude": -96.8803,
+        "population": 3038
+      },
+      {
+        "name": "Tecumseh",
+        "latitude": 35.2573,
+        "longitude": -96.9361,
+        "population": 6098
+      },
+      {
+        "name": "Wetumka",
+        "latitude": 35.2434,
+        "longitude": -96.2447,
+        "population": 1325
+      },
+      {
+        "name": "Okemah",
+        "latitude": 35.4331,
+        "longitude": -96.3039,
+        "population": 3057
+      },
+      {
+        "name": "Talihina",
+        "latitude": 34.7523,
+        "longitude": -95.0497,
+        "population": 1011
+      },
+      {
+        "name": "Elgin",
+        "latitude": 34.9798,
+        "longitude": -98.2942,
+        "population": 2919
+      },
+      {
+        "name": "Comanche",
+        "latitude": 34.3651,
+        "longitude": -97.9581,
+        "population": 1547
+      },
+      {
+        "name": "Ringling",
+        "latitude": 34.1762,
+        "longitude": -97.5886,
+        "population": 998
+      },
+      {
+        "name": "Denison TX border area - Idabel",
+        "latitude": 33.8951,
+        "longitude": -94.8283,
+        "population": 6944
+      }
+    ]
+  },
+  {
+    "state": "Texas",
+    "towns": [
+      {
+        "name": "Houston",
+        "latitude": 29.7604,
+        "longitude": -95.3698,
+        "population": 2328253
+      },
+      {
+        "name": "San Antonio",
+        "latitude": 29.4241,
+        "longitude": -98.4936,
+        "population": 1479835
+      },
+      {
+        "name": "Dallas",
+        "latitude": 32.7767,
+        "longitude": -96.797,
+        "population": 1307930
+      },
+      {
+        "name": "Austin",
+        "latitude": 30.2672,
+        "longitude": -97.7431,
+        "population": 979539
+      },
+      {
+        "name": "Fort Worth",
+        "latitude": 32.7555,
+        "longitude": -97.3308,
+        "population": 935508
+      },
+      {
+        "name": "El Paso",
+        "latitude": 31.7619,
+        "longitude": -106.485,
+        "population": 678815
+      },
+      {
+        "name": "Arlington",
+        "latitude": 32.7357,
+        "longitude": -97.1081,
+        "population": 398854
+      },
+      {
+        "name": "Corpus Christi",
+        "latitude": 27.8006,
+        "longitude": -97.3964,
+        "population": 317863
+      },
+      {
+        "name": "Plano",
+        "latitude": 33.0198,
+        "longitude": -96.6989,
+        "population": 287677
+      },
+      {
+        "name": "Laredo",
+        "latitude": 27.5064,
+        "longitude": -99.5075,
+        "population": 262491
+      },
+      {
+        "name": "Lubbock",
+        "latitude": 33.5779,
+        "longitude": -101.8552,
+        "population": 261830
+      },
+      {
+        "name": "Garland",
+        "latitude": 32.9126,
+        "longitude": -96.6389,
+        "population": 245386
+      },
+      {
+        "name": "Irving",
+        "latitude": 32.814,
+        "longitude": -96.9489,
+        "population": 240373
+      },
+      {
+        "name": "Amarillo",
+        "latitude": 35.222,
+        "longitude": -101.8313,
+        "population": 206239
+      },
+      {
+        "name": "Grand Prairie",
+        "latitude": 32.746,
+        "longitude": -96.9978,
+        "population": 196100
+      },
+      {
+        "name": "Brownsville",
+        "latitude": 25.9017,
+        "longitude": -97.4975,
+        "population": 187001
+      },
+      {
+        "name": "McKinney",
+        "latitude": 33.1972,
+        "longitude": -96.6397,
+        "population": 212692
+      },
+      {
+        "name": "Frisco",
+        "latitude": 33.1507,
+        "longitude": -96.8236,
+        "population": 223891
+      },
+      {
+        "name": "Killeen",
+        "latitude": 31.1171,
+        "longitude": -97.7278,
+        "population": 156721
+      },
+      {
+        "name": "Waco",
+        "latitude": 31.5493,
+        "longitude": -97.1467,
+        "population": 143736
+      },
+      {
+        "name": "Denton",
+        "latitude": 33.2148,
+        "longitude": -97.1331,
+        "population": 148146
+      },
+      {
+        "name": "Beaumont",
+        "latitude": 30.086,
+        "longitude": -94.1018,
+        "population": 113559
+      },
+      {
+        "name": "Abilene",
+        "latitude": 32.4487,
+        "longitude": -99.7331,
+        "population": 127658
+      },
+      {
+        "name": "Mesquite",
+        "latitude": 32.7668,
+        "longitude": -96.5992,
+        "population": 143484
+      },
+      {
+        "name": "Carrollton",
+        "latitude": 32.9537,
+        "longitude": -96.8903,
+        "population": 138871
+      },
+      {
+        "name": "Round Rock",
+        "latitude": 30.5083,
+        "longitude": -97.6789,
+        "population": 133372
+      },
+      {
+        "name": "Midland",
+        "latitude": 31.9974,
+        "longitude": -102.0779,
+        "population": 140282
+      },
+      {
+        "name": "Odessa",
+        "latitude": 31.8457,
+        "longitude": -102.3676,
+        "population": 124371
+      },
+      {
+        "name": "Lewisville",
+        "latitude": 33.0462,
+        "longitude": -96.9942,
+        "population": 109966
+      },
+      {
+        "name": "Tyler",
+        "latitude": 32.3513,
+        "longitude": -95.3011,
+        "population": 107987
+      },
+      {
+        "name": "College Station",
+        "latitude": 30.628,
+        "longitude": -96.3344,
+        "population": 121398
+      },
+      {
+        "name": "Pearland",
+        "latitude": 29.5635,
+        "longitude": -95.286,
+        "population": 132224
+      },
+      {
+        "name": "Wichita Falls",
+        "latitude": 33.9137,
+        "longitude": -98.4934,
+        "population": 102073
+      },
+      {
+        "name": "San Marcos",
+        "latitude": 29.8833,
+        "longitude": -97.9414,
+        "population": 69287
+      },
+      {
+        "name": "League City",
+        "latitude": 29.5075,
+        "longitude": -95.0949,
+        "population": 114392
+      },
+      {
+        "name": "Longview",
+        "latitude": 32.5007,
+        "longitude": -94.7405,
+        "population": 83122
+      },
+      {
+        "name": "McAllen",
+        "latitude": 26.2034,
+        "longitude": -98.23,
+        "population": 143268
+      },
+      {
+        "name": "Harlingen",
+        "latitude": 26.1906,
+        "longitude": -97.6961,
+        "population": 77196
+      },
+      {
+        "name": "Pharr",
+        "latitude": 26.1948,
+        "longitude": -98.1836,
+        "population": 80661
+      },
+      {
+        "name": "New Braunfels",
+        "latitude": 29.703,
+        "longitude": -98.1245,
+        "population": 99782
+      },
+      {
+        "name": "Sugar Land",
+        "latitude": 29.6197,
+        "longitude": -95.6349,
+        "population": 118858
+      },
+      {
+        "name": "Edinburg",
+        "latitude": 26.3017,
+        "longitude": -98.1633,
+        "population": 101170
+      },
+      {
+        "name": "Pasadena",
+        "latitude": 29.6911,
+        "longitude": -95.2091,
+        "population": 153131
+      },
+      {
+        "name": "Missouri City",
+        "latitude": 29.6185,
+        "longitude": -95.5377,
+        "population": 74765
+      },
+      {
+        "name": "Temple",
+        "latitude": 31.0982,
+        "longitude": -97.3428,
+        "population": 88599
+      },
+      {
+        "name": "Flower Mound",
+        "latitude": 33.0146,
+        "longitude": -97.0969,
+        "population": 79620
+      },
+      {
+        "name": "Conroe",
+        "latitude": 30.3119,
+        "longitude": -95.4561,
+        "population": 104547
+      },
+      {
+        "name": "Georgetown",
+        "latitude": 30.6333,
+        "longitude": -97.6775,
+        "population": 83457
+      },
+      {
+        "name": "Victoria",
+        "latitude": 28.8053,
+        "longitude": -97.0036,
+        "population": 65767
+      },
+      {
+        "name": "Port Arthur",
+        "latitude": 29.8849,
+        "longitude": -93.9399,
+        "population": 55243
+      },
+      {
+        "name": "San Angelo",
+        "latitude": 31.4638,
+        "longitude": -100.437,
+        "population": 99637
+      },
+      {
+        "name": "Lufkin",
+        "latitude": 31.3382,
+        "longitude": -94.7291,
+        "population": 35009
+      },
+      {
+        "name": "Texarkana",
+        "latitude": 33.4251,
+        "longitude": -94.0477,
+        "population": 37442
+      },
+      {
+        "name": "Nacogdoches",
+        "latitude": 31.6035,
+        "longitude": -94.6554,
+        "population": 32599
+      },
+      {
+        "name": "Bryan",
+        "latitude": 30.6744,
+        "longitude": -96.3698,
+        "population": 86307
+      },
+      {
+        "name": "Waxahachie",
+        "latitude": 32.3868,
+        "longitude": -96.8489,
+        "population": 45140
+      },
+      {
+        "name": "Sherman",
+        "latitude": 33.6357,
+        "longitude": -96.6089,
+        "population": 43645
+      },
+      {
+        "name": "Weatherford",
+        "latitude": 32.7593,
+        "longitude": -97.7975,
+        "population": 36120
+      },
+      {
+        "name": "Stephenville",
+        "latitude": 32.2207,
+        "longitude": -98.2022,
+        "population": 22015
+      },
+      {
+        "name": "Kerrville",
+        "latitude": 30.0474,
+        "longitude": -99.1403,
+        "population": 24735
+      },
+      {
+        "name": "Corsicana",
+        "latitude": 32.0957,
+        "longitude": -96.4689,
+        "population": 23790
+      },
+      {
+        "name": "Paris",
+        "latitude": 33.6609,
+        "longitude": -95.5555,
+        "population": 24909
+      },
+      {
+        "name": "Greenville",
+        "latitude": 33.1382,
+        "longitude": -96.1108,
+        "population": 27588
+      },
+      {
+        "name": "Sulphur Springs",
+        "latitude": 33.1382,
+        "longitude": -95.6011,
+        "population": 17023
+      },
+      {
+        "name": "Seguin",
+        "latitude": 29.5688,
+        "longitude": -97.9647,
+        "population": 31749
+      },
+      {
+        "name": "Huntsville",
+        "latitude": 30.7235,
+        "longitude": -95.5508,
+        "population": 45523
+      },
+      {
+        "name": "Gainesville",
+        "latitude": 33.6232,
+        "longitude": -97.1331,
+        "population": 17141
+      },
+      {
+        "name": "Mineral Wells",
+        "latitude": 32.8085,
+        "longitude": -98.1128,
+        "population": 15975
+      },
+      {
+        "name": "Pampa",
+        "latitude": 35.5364,
+        "longitude": -100.9601,
+        "population": 17394
+      },
+      {
+        "name": "Plainview",
+        "latitude": 34.1845,
+        "longitude": -101.7068,
+        "population": 19429
+      },
+      {
+        "name": "Snyder",
+        "latitude": 32.7185,
+        "longitude": -100.9176,
+        "population": 10697
+      },
+      {
+        "name": "Big Spring",
+        "latitude": 32.2504,
+        "longitude": -101.4788,
+        "population": 28460
+      },
+      {
+        "name": "Pecos",
+        "latitude": 31.4229,
+        "longitude": -103.4932,
+        "population": 15495
+      },
+      {
+        "name": "Uvalde",
+        "latitude": 29.2097,
+        "longitude": -99.7862,
+        "population": 16403
+      },
+      {
+        "name": "Del Rio",
+        "latitude": 29.3625,
+        "longitude": -100.8963,
+        "population": 35591
+      },
+      {
+        "name": "Eagle Pass",
+        "latitude": 28.7091,
+        "longitude": -100.4995,
+        "population": 29326
+      },
+      {
+        "name": "Alice",
+        "latitude": 27.7521,
+        "longitude": -98.0697,
+        "population": 18767
+      },
+      {
+        "name": "Kingsville",
+        "latitude": 27.5158,
+        "longitude": -97.8561,
+        "population": 25480
+      },
+      {
+        "name": "Rockport",
+        "latitude": 28.0206,
+        "longitude": -97.0544,
+        "population": 14366
+      },
+      {
+        "name": "Bay City",
+        "latitude": 28.9833,
+        "longitude": -95.9694,
+        "population": 17464
+      },
+      {
+        "name": "Wharton",
+        "latitude": 29.3113,
+        "longitude": -96.1005,
+        "population": 8695
+      },
+      {
+        "name": "El Campo",
+        "latitude": 29.1966,
+        "longitude": -96.2694,
+        "population": 12161
+      },
+      {
+        "name": "Brenham",
+        "latitude": 30.1669,
+        "longitude": -96.3977,
+        "population": 17188
+      },
+      {
+        "name": "Henderson",
+        "latitude": 32.1534,
+        "longitude": -94.7958,
+        "population": 13481
+      },
+      {
+        "name": "Marshall",
+        "latitude": 32.5448,
+        "longitude": -94.3674,
+        "population": 22672
+      },
+      {
+        "name": "Jacksonville",
+        "latitude": 31.964,
+        "longitude": -95.2697,
+        "population": 14841
+      },
+      {
+        "name": "Athens",
+        "latitude": 32.2048,
+        "longitude": -95.8511,
+        "population": 13279
+      },
+      {
+        "name": "Ennis",
+        "latitude": 32.3265,
+        "longitude": -96.6247,
+        "population": 21898
+      },
+      {
+        "name": "Terrell",
+        "latitude": 32.7357,
+        "longitude": -96.2753,
+        "population": 22145
+      },
+      {
+        "name": "Kaufman",
+        "latitude": 32.5848,
+        "longitude": -96.3061,
+        "population": 8538
+      },
+      {
+        "name": "Forney",
+        "latitude": 32.7484,
+        "longitude": -96.4717,
+        "population": 27869
+      },
+      {
+        "name": "Rockwall",
+        "latitude": 32.9312,
+        "longitude": -96.4597,
+        "population": 52175
+      },
+      {
+        "name": "Rowlett",
+        "latitude": 32.9029,
+        "longitude": -96.5638,
+        "population": 66469
+      },
+      {
+        "name": "Sachse",
+        "latitude": 32.9762,
+        "longitude": -96.5816,
+        "population": 34029
+      },
+      {
+        "name": "Wylie",
+        "latitude": 33.0151,
+        "longitude": -96.5388,
+        "population": 56207
+      },
+      {
+        "name": "Lavon",
+        "latitude": 33.0273,
+        "longitude": -96.4408,
+        "population": 21082
+      },
+      {
+        "name": "Princeton",
+        "latitude": 33.18,
+        "longitude": -96.4989,
+        "population": 24503
+      },
+      {
+        "name": "Celina",
+        "latitude": 33.3248,
+        "longitude": -96.7847,
+        "population": 43607
+      },
+      {
+        "name": "Prosper",
+        "latitude": 33.2362,
+        "longitude": -96.8009,
+        "population": 37374
+      },
+      {
+        "name": "Allen",
+        "latitude": 33.1032,
+        "longitude": -96.6706,
+        "population": 109733
+      },
+      {
+        "name": "Murphy",
+        "latitude": 33.0148,
+        "longitude": -96.6128,
+        "population": 23395
+      },
+      {
+        "name": "Richardson",
+        "latitude": 32.9483,
+        "longitude": -96.7299,
+        "population": 120981
+      },
+      {
+        "name": "Balch Springs",
+        "latitude": 32.7257,
+        "longitude": -96.6272,
+        "population": 29289
+      },
+      {
+        "name": "Sunnyvale",
+        "latitude": 32.7965,
+        "longitude": -96.5594,
+        "population": 8336
+      },
+      {
+        "name": "Hutchins",
+        "latitude": 32.6429,
+        "longitude": -96.7094,
+        "population": 6128
+      },
+      {
+        "name": "DeSoto",
+        "latitude": 32.5896,
+        "longitude": -96.8572,
+        "population": 57991
+      },
+      {
+        "name": "Cedar Hill",
+        "latitude": 32.5885,
+        "longitude": -96.9561,
+        "population": 48169
+      },
+      {
+        "name": "Duncanville",
+        "latitude": 32.6518,
+        "longitude": -96.9083,
+        "population": 41202
+      },
+      {
+        "name": "Lancaster",
+        "latitude": 32.5921,
+        "longitude": -96.7561,
+        "population": 43262
+      },
+      {
+        "name": "Midlothian",
+        "latitude": 32.4829,
+        "longitude": -97.0061,
+        "population": 44194
+      },
+      {
+        "name": "Mansfield",
+        "latitude": 32.5632,
+        "longitude": -97.1411,
+        "population": 78023
+      },
+      {
+        "name": "Grapevine",
+        "latitude": 32.9343,
+        "longitude": -97.0781,
+        "population": 55564
+      },
+      {
+        "name": "Euless",
+        "latitude": 32.8371,
+        "longitude": -97.0831,
+        "population": 62153
+      },
+      {
+        "name": "Bedford",
+        "latitude": 32.844,
+        "longitude": -97.1431,
+        "population": 49308
+      },
+      {
+        "name": "Hurst",
+        "latitude": 32.8232,
+        "longitude": -97.1706,
+        "population": 38890
+      },
+      {
+        "name": "Colleyville",
+        "latitude": 32.8887,
+        "longitude": -97.1503,
+        "population": 29001
+      },
+      {
+        "name": "Keller",
+        "latitude": 32.9343,
+        "longitude": -97.2294,
+        "population": 50820
+      },
+      {
+        "name": "Southlake",
+        "latitude": 32.9401,
+        "longitude": -97.1336,
+        "population": 33695
+      },
+      {
+        "name": "Roanoke",
+        "latitude": 33.0018,
+        "longitude": -97.2267,
+        "population": 12994
+      },
+      {
+        "name": "Argyle",
+        "latitude": 33.1248,
+        "longitude": -97.1778,
+        "population": 6014
+      },
+      {
+        "name": "Haslet",
+        "latitude": 32.974,
+        "longitude": -97.3486,
+        "population": 1941
+      },
+      {
+        "name": "Benbrook",
+        "latitude": 32.6818,
+        "longitude": -97.4617,
+        "population": 24017
+      },
+      {
+        "name": "Crowley",
+        "latitude": 32.5796,
+        "longitude": -97.3622,
+        "population": 18163
+      },
+      {
+        "name": "Burleson",
+        "latitude": 32.5421,
+        "longitude": -97.3208,
+        "population": 50052
+      },
+      {
+        "name": "Joshua",
+        "latitude": 32.4598,
+        "longitude": -97.3878,
+        "population": 8134
+      },
+      {
+        "name": "Cleburne",
+        "latitude": 32.3499,
+        "longitude": -97.3866,
+        "population": 33615
+      },
+      {
+        "name": "Granbury",
+        "latitude": 32.4418,
+        "longitude": -97.7939,
+        "population": 11040
+      },
+      {
+        "name": "Aledo",
+        "latitude": 32.6965,
+        "longitude": -97.5958,
+        "population": 6217
+      },
+      {
+        "name": "Azle",
+        "latitude": 32.8957,
+        "longitude": -97.5472,
+        "population": 14344
+      },
+      {
+        "name": "Lake Worth",
+        "latitude": 32.8068,
+        "longitude": -97.4353,
+        "population": 4855
+      },
+      {
+        "name": "White Settlement",
+        "latitude": 32.7518,
+        "longitude": -97.4636,
+        "population": 17553
+      },
+      {
+        "name": "Saginaw",
+        "latitude": 32.8596,
+        "longitude": -97.3672,
+        "population": 24980
+      },
+      {
+        "name": "Watauga",
+        "latitude": 32.8732,
+        "longitude": -97.2583,
+        "population": 24754
+      },
+      {
+        "name": "Richland Hills",
+        "latitude": 32.8124,
+        "longitude": -97.2244,
+        "population": 8493
+      },
+      {
+        "name": "North Richland Hills",
+        "latitude": 32.8343,
+        "longitude": -97.2289,
+        "population": 73821
+      },
+      {
+        "name": "Haltom City",
+        "latitude": 32.7993,
+        "longitude": -97.2706,
+        "population": 46044
+      },
+      {
+        "name": "Highland Village",
+        "latitude": 33.0912,
+        "longitude": -97.0561,
+        "population": 16671
+      },
+      {
+        "name": "Corinth",
+        "latitude": 33.144,
+        "longitude": -97.0656,
+        "population": 22684
+      },
+      {
+        "name": "Lake Dallas",
+        "latitude": 33.129,
+        "longitude": -97.0167,
+        "population": 7822
+      },
+      {
+        "name": "Shady Shores",
+        "latitude": 33.1512,
+        "longitude": -97.0006,
+        "population": 2844
+      },
+      {
+        "name": "Hickory Creek",
+        "latitude": 33.1218,
+        "longitude": -97.0247,
+        "population": 5263
+      },
+      {
+        "name": "The Colony",
+        "latitude": 33.0809,
+        "longitude": -96.8895,
+        "population": 43674
+      },
+      {
+        "name": "Little Elm",
+        "latitude": 33.1637,
+        "longitude": -96.9372,
+        "population": 57620
+      },
+      {
+        "name": "Anna",
+        "latitude": 33.3512,
+        "longitude": -96.5511,
+        "population": 23523
+      },
+      {
+        "name": "Van Alstyne",
+        "latitude": 33.4207,
+        "longitude": -96.5728,
+        "population": 7220
+      },
+      {
+        "name": "Denison",
+        "latitude": 33.7568,
+        "longitude": -96.5364,
+        "population": 25671
+      },
+      {
+        "name": "Pottsboro",
+        "latitude": 33.7634,
+        "longitude": -96.6781,
+        "population": 2832
+      },
+      {
+        "name": "Durant OK area - Whitesboro",
+        "latitude": 33.6554,
+        "longitude": -96.905,
+        "population": 4590
+      },
+      {
+        "name": "Bonham",
+        "latitude": 33.5762,
+        "longitude": -96.1786,
+        "population": 10025
+      },
+      {
+        "name": "Muenster",
+        "latitude": 33.6512,
+        "longitude": -97.3758,
+        "population": 1709
+      },
+      {
+        "name": "Bowie",
+        "latitude": 33.5623,
+        "longitude": -97.8497,
+        "population": 5105
+      },
+      {
+        "name": "Jacksboro",
+        "latitude": 33.2184,
+        "longitude": -98.1611,
+        "population": 4393
+      },
+      {
+        "name": "Glen Rose",
+        "latitude": 32.2329,
+        "longitude": -97.7556,
+        "population": 2844
+      },
+      {
+        "name": "Hillsboro",
+        "latitude": 32.0126,
+        "longitude": -97.1278,
+        "population": 8506
+      },
+      {
+        "name": "Hewitt",
+        "latitude": 31.4609,
+        "longitude": -97.1944,
+        "population": 14889
+      },
+      {
+        "name": "Woodway",
+        "latitude": 31.4999,
+        "longitude": -97.2122,
+        "population": 9137
+      },
+      {
+        "name": "Bellmead",
+        "latitude": 31.6012,
+        "longitude": -97.0928,
+        "population": 10373
+      },
+      {
+        "name": "Lorena",
+        "latitude": 31.3804,
+        "longitude": -97.2139,
+        "population": 1951
+      },
+      {
+        "name": "Mexia",
+        "latitude": 31.6804,
+        "longitude": -96.4828,
+        "population": 7604
+      },
+      {
+        "name": "Italy",
+        "latitude": 32.1834,
+        "longitude": -96.8878,
+        "population": 2050
+      },
+      {
+        "name": "Harker Heights",
+        "latitude": 31.0804,
+        "longitude": -97.6481,
+        "population": 30986
+      },
+      {
+        "name": "Copperas Cove",
+        "latitude": 31.1237,
+        "longitude": -97.9028,
+        "population": 36165
+      },
+      {
+        "name": "Belton",
+        "latitude": 31.0559,
+        "longitude": -97.4681,
+        "population": 28010
+      },
+      {
+        "name": "Nolanville",
+        "latitude": 31.0787,
+        "longitude": -97.6058,
+        "population": 7395
+      },
+      {
+        "name": "Cedar Park",
+        "latitude": 30.5052,
+        "longitude": -97.8203,
+        "population": 83796
+      },
+      {
+        "name": "Leander",
+        "latitude": 30.5788,
+        "longitude": -97.8531,
+        "population": 74979
+      },
+      {
+        "name": "Pflugerville",
+        "latitude": 30.4393,
+        "longitude": -97.62,
+        "population": 73994
+      },
+      {
+        "name": "Hutto",
+        "latitude": 30.5427,
+        "longitude": -97.5483,
+        "population": 32459
+      },
+      {
+        "name": "Taylor",
+        "latitude": 30.571,
+        "longitude": -97.4089,
+        "population": 17394
+      },
+      {
+        "name": "Bastrop",
+        "latitude": 30.1108,
+        "longitude": -97.315,
+        "population": 11049
+      },
+      {
+        "name": "Lockhart",
+        "latitude": 29.8849,
+        "longitude": -97.6703,
+        "population": 16878
+      },
+      {
+        "name": "Luling",
+        "latitude": 29.681,
+        "longitude": -97.6467,
+        "population": 6115
+      },
+      {
+        "name": "Kyle",
+        "latitude": 29.9891,
+        "longitude": -97.8803,
+        "population": 74806
+      },
+      {
+        "name": "Buda",
+        "latitude": 30.0849,
+        "longitude": -97.8403,
+        "population": 28044
+      },
+      {
+        "name": "Manor",
+        "latitude": 30.341,
+        "longitude": -97.5567,
+        "population": 17969
+      },
+      {
+        "name": "Elgin",
+        "latitude": 30.3499,
+        "longitude": -97.37,
+        "population": 11190
+      },
+      {
+        "name": "Smithville",
+        "latitude": 30.0096,
+        "longitude": -97.1608,
+        "population": 4607
+      },
+      {
+        "name": "Giddings",
+        "latitude": 30.1793,
+        "longitude": -96.9325,
+        "population": 5362
+      },
+      {
+        "name": "Hearne",
+        "latitude": 30.8724,
+        "longitude": -96.5944,
+        "population": 4367
+      },
+      {
+        "name": "Calvert",
+        "latitude": 30.981,
+        "longitude": -96.6761,
+        "population": 1154
+      },
+      {
+        "name": "The Woodlands",
+        "latitude": 30.1658,
+        "longitude": -95.4613,
+        "population": 120163
+      },
+      {
+        "name": "Spring",
+        "latitude": 30.0799,
+        "longitude": -95.4172,
+        "population": 64046
+      },
+      {
+        "name": "Humble",
+        "latitude": 29.9988,
+        "longitude": -95.2622,
+        "population": 15247
+      },
+      {
+        "name": "Baytown",
+        "latitude": 29.7355,
+        "longitude": -94.9774,
+        "population": 79566
+      },
+      {
+        "name": "Deer Park",
+        "latitude": 29.7055,
+        "longitude": -95.1238,
+        "population": 33128
+      },
+      {
+        "name": "La Porte",
+        "latitude": 29.6658,
+        "longitude": -95.0197,
+        "population": 35507
+      },
+      {
+        "name": "South Houston",
+        "latitude": 29.6627,
+        "longitude": -95.2319,
+        "population": 17100
+      },
+      {
+        "name": "Friendswood",
+        "latitude": 29.5296,
+        "longitude": -95.2011,
+        "population": 40220
+      },
+      {
+        "name": "Webster",
+        "latitude": 29.5377,
+        "longitude": -95.1177,
+        "population": 11218
+      },
+      {
+        "name": "Nassau Bay",
+        "latitude": 29.5527,
+        "longitude": -95.1005,
+        "population": 4042
+      },
+      {
+        "name": "Seabrook",
+        "latitude": 29.5638,
+        "longitude": -95.0261,
+        "population": 13871
+      },
+      {
+        "name": "Kemah",
+        "latitude": 29.5349,
+        "longitude": -94.9997,
+        "population": 1931
+      },
+      {
+        "name": "Clear Lake Shores",
+        "latitude": 29.5388,
+        "longitude": -95.0278,
+        "population": 1216
+      },
+      {
+        "name": "El Lago",
+        "latitude": 29.5699,
+        "longitude": -95.0439,
+        "population": 2754
+      },
+      {
+        "name": "Taylor Lake Village",
+        "latitude": 29.5699,
+        "longitude": -95.0736,
+        "population": 3695
+      },
+      {
+        "name": "Galveston",
+        "latitude": 29.3013,
+        "longitude": -94.7977,
+        "population": 50180
+      },
+      {
+        "name": "Texas City",
+        "latitude": 29.3838,
+        "longitude": -94.9027,
+        "population": 51898
+      },
+      {
+        "name": "La Marque",
+        "latitude": 29.3688,
+        "longitude": -94.9797,
+        "population": 16852
+      },
+      {
+        "name": "Santa Fe",
+        "latitude": 29.378,
+        "longitude": -95.1036,
+        "population": 14173
+      },
+      {
+        "name": "Alvin",
+        "latitude": 29.4244,
+        "longitude": -95.2441,
+        "population": 28285
+      },
+      {
+        "name": "Manvel",
+        "latitude": 29.4613,
+        "longitude": -95.3582,
+        "population": 19309
+      },
+      {
+        "name": "Angleton",
+        "latitude": 29.1688,
+        "longitude": -95.4319,
+        "population": 18786
+      },
+      {
+        "name": "Lake Jackson",
+        "latitude": 29.0341,
+        "longitude": -95.4344,
+        "population": 28302
+      },
+      {
+        "name": "Clute",
+        "latitude": 29.0196,
+        "longitude": -95.3972,
+        "population": 12001
+      },
+      {
+        "name": "Freeport",
+        "latitude": 28.9524,
+        "longitude": -95.3597,
+        "population": 13264
+      },
+      {
+        "name": "Richmond",
+        "latitude": 29.5819,
+        "longitude": -95.7608,
+        "population": 13893
+      },
+      {
+        "name": "Rosenberg",
+        "latitude": 29.5572,
+        "longitude": -95.8086,
+        "population": 43068
+      },
+      {
+        "name": "Stafford",
+        "latitude": 29.616,
+        "longitude": -95.5577,
+        "population": 17778
+      },
+      {
+        "name": "Fresno",
+        "latitude": 29.5374,
+        "longitude": -95.4463,
+        "population": 20507
+      },
+      {
+        "name": "Katy",
+        "latitude": 29.7858,
+        "longitude": -95.8244,
+        "population": 21894
+      },
+      {
+        "name": "Cypress",
+        "latitude": 29.9691,
+        "longitude": -95.6974,
+        "population": 182972
+      },
+      {
+        "name": "Tomball",
+        "latitude": 30.0972,
+        "longitude": -95.6161,
+        "population": 13822
+      },
+      {
+        "name": "Magnolia",
+        "latitude": 30.209,
+        "longitude": -95.7519,
+        "population": 2890
+      },
+      {
+        "name": "Willis",
+        "latitude": 30.4196,
+        "longitude": -95.4842,
+        "population": 7222
+      },
+      {
+        "name": "San Augustine",
+        "latitude": 31.496,
+        "longitude": -94.1058,
+        "population": 1858
+      },
+      {
+        "name": "Center",
+        "latitude": 31.7962,
+        "longitude": -94.1764,
+        "population": 5238
+      },
+      {
+        "name": "Carthage",
+        "latitude": 32.1584,
+        "longitude": -94.3378,
+        "population": 8390
+      },
+      {
+        "name": "Gladewater",
+        "latitude": 32.536,
+        "longitude": -94.9481,
+        "population": 5993
+      },
+      {
+        "name": "Kilgore",
+        "latitude": 32.3887,
+        "longitude": -94.8758,
+        "population": 15108
+      },
+      {
+        "name": "Palestine",
+        "latitude": 31.7629,
+        "longitude": -95.6311,
+        "population": 17765
+      },
+      {
+        "name": "Rusk",
+        "latitude": 31.7929,
+        "longitude": -94.8975,
+        "population": 5085
+      },
+      {
+        "name": "Crockett",
+        "latitude": 31.3179,
+        "longitude": -95.4561,
+        "population": 6420
+      },
+      {
+        "name": "Livingston",
+        "latitude": 30.7129,
+        "longitude": -94.9356,
+        "population": 6494
+      },
+      {
+        "name": "Woodville",
+        "latitude": 30.7741,
+        "longitude": -94.4178,
+        "population": 2463
+      },
+      {
+        "name": "Orange",
+        "latitude": 30.0938,
+        "longitude": -93.7366,
+        "population": 18596
+      },
+      {
+        "name": "Port Neches",
+        "latitude": 29.9844,
+        "longitude": -93.9519,
+        "population": 13016
+      },
+      {
+        "name": "Groves",
+        "latitude": 29.9455,
+        "longitude": -93.9181,
+        "population": 16144
+      },
+      {
+        "name": "Nederland",
+        "latitude": 29.9738,
+        "longitude": -93.9941,
+        "population": 18034
+      },
+      {
+        "name": "Vidor",
+        "latitude": 30.1296,
+        "longitude": -94.0183,
+        "population": 10284
+      },
+      {
+        "name": "Jasper",
+        "latitude": 30.9249,
+        "longitude": -94.0106,
+        "population": 7274
+      },
+      {
+        "name": "Fredericksburg",
+        "latitude": 30.2752,
+        "longitude": -98.872,
+        "population": 12304
+      },
+      {
+        "name": "Boerne",
+        "latitude": 29.7944,
+        "longitude": -98.7317,
+        "population": 22658
+      },
+      {
+        "name": "Comfort",
+        "latitude": 29.968,
+        "longitude": -98.9058,
+        "population": 3225
+      },
+      {
+        "name": "Marble Falls",
+        "latitude": 30.5782,
+        "longitude": -98.275,
+        "population": 7752
+      },
+      {
+        "name": "Burnet",
+        "latitude": 30.7588,
+        "longitude": -98.2339,
+        "population": 7011
+      },
+      {
+        "name": "Lampasas",
+        "latitude": 31.0657,
+        "longitude": -98.1836,
+        "population": 7671
+      },
+      {
+        "name": "Llano",
+        "latitude": 30.7522,
+        "longitude": -98.6758,
+        "population": 3449
+      },
+      {
+        "name": "Mason",
+        "latitude": 30.7488,
+        "longitude": -99.2297,
+        "population": 2300
+      },
+      {
+        "name": "Brady",
+        "latitude": 31.1346,
+        "longitude": -99.335,
+        "population": 5524
+      },
+      {
+        "name": "Andrews",
+        "latitude": 32.3187,
+        "longitude": -102.5536,
+        "population": 14786
+      },
+      {
+        "name": "Seminole",
+        "latitude": 32.7198,
+        "longitude": -102.6459,
+        "population": 7386
+      },
+      {
+        "name": "Hobbs NM area - Lovington",
+        "latitude": 32.9448,
+        "longitude": -103.346,
+        "population": 12207
+      },
+      {
+        "name": "Sweetwater",
+        "latitude": 32.471,
+        "longitude": -100.4064,
+        "population": 10894
+      },
+      {
+        "name": "Brownwood",
+        "latitude": 31.7093,
+        "longitude": -98.9903,
+        "population": 19042
+      },
+      {
+        "name": "Eastland",
+        "latitude": 32.4026,
+        "longitude": -98.8183,
+        "population": 3779
+      },
+      {
+        "name": "Cisco",
+        "latitude": 32.3882,
+        "longitude": -98.9789,
+        "population": 3893
+      },
+      {
+        "name": "Breckenridge",
+        "latitude": 32.7543,
+        "longitude": -98.9008,
+        "population": 5398
+      },
+      {
+        "name": "Graham",
+        "latitude": 33.107,
+        "longitude": -98.5881,
+        "population": 8538
+      },
+      {
+        "name": "Iowa Park",
+        "latitude": 33.9518,
+        "longitude": -98.6703,
+        "population": 6355
+      },
+      {
+        "name": "Burkburnett",
+        "latitude": 34.0765,
+        "longitude": -98.5681,
+        "population": 10927
+      },
+      {
+        "name": "Vernon",
+        "latitude": 34.1551,
+        "longitude": -99.2942,
+        "population": 10295
+      },
+      {
+        "name": "Childress",
+        "latitude": 34.4259,
+        "longitude": -100.2039,
+        "population": 6048
+      },
+      {
+        "name": "Quanah",
+        "latitude": 34.2984,
+        "longitude": -99.7408,
+        "population": 2522
+      },
+      {
+        "name": "Paducah",
+        "latitude": 34.0126,
+        "longitude": -100.3017,
+        "population": 1108
+      },
+      {
+        "name": "Crosbyton",
+        "latitude": 33.6584,
+        "longitude": -101.2394,
+        "population": 1471
+      },
+      {
+        "name": "Post",
+        "latitude": 33.1887,
+        "longitude": -101.3794,
+        "population": 4836
+      },
+      {
+        "name": "Lamesa",
+        "latitude": 32.7348,
+        "longitude": -101.9508,
+        "population": 8393
+      },
+      {
+        "name": "Levelland",
+        "latitude": 33.5887,
+        "longitude": -102.3778,
+        "population": 13549
+      },
+      {
+        "name": "Slaton",
+        "latitude": 33.4376,
+        "longitude": -101.6436,
+        "population": 5847
+      },
+      {
+        "name": "Tahoka",
+        "latitude": 33.1687,
+        "longitude": -101.7978,
+        "population": 2582
+      },
+      {
+        "name": "Lorenzo",
+        "latitude": 33.6723,
+        "longitude": -101.5378,
+        "population": 1025
+      },
+      {
+        "name": "Floydada",
+        "latitude": 33.9837,
+        "longitude": -101.3378,
+        "population": 2482
+      },
+      {
+        "name": "Lockney",
+        "latitude": 33.8773,
+        "longitude": -101.4461,
+        "population": 1635
+      },
+      {
+        "name": "Tulia",
+        "latitude": 34.5359,
+        "longitude": -101.7575,
+        "population": 4511
+      },
+      {
+        "name": "Canyon",
+        "latitude": 34.9798,
+        "longitude": -101.9197,
+        "population": 15879
+      },
+      {
+        "name": "Borger",
+        "latitude": 35.6687,
+        "longitude": -101.3981,
+        "population": 12520
+      },
+      {
+        "name": "Dumas",
+        "latitude": 35.8654,
+        "longitude": -101.9728,
+        "population": 14691
+      },
+      {
+        "name": "Dalhart",
+        "latitude": 36.0601,
+        "longitude": -102.5133,
+        "population": 7902
+      },
+      {
+        "name": "Perryton",
+        "latitude": 36.3993,
+        "longitude": -100.8017,
+        "population": 8659
+      },
+      {
+        "name": "Canadian",
+        "latitude": 35.9112,
+        "longitude": -100.3831,
+        "population": 2929
+      },
+      {
+        "name": "Wheeler",
+        "latitude": 35.4454,
+        "longitude": -100.2706,
+        "population": 1588
+      },
+      {
+        "name": "Shamrock",
+        "latitude": 35.219,
+        "longitude": -100.2503,
+        "population": 1785
+      },
+      {
+        "name": "McLean",
+        "latitude": 35.2334,
+        "longitude": -100.5961,
+        "population": 748
+      },
+      {
+        "name": "Clarendon",
+        "latitude": 34.9359,
+        "longitude": -100.8936,
+        "population": 1990
+      },
+      {
+        "name": "Memphis",
+        "latitude": 34.7237,
+        "longitude": -100.5369,
+        "population": 2109
+      },
+      {
+        "name": "Wellington",
+        "latitude": 34.8559,
+        "longitude": -100.2178,
+        "population": 2273
+      },
+      {
+        "name": "Fort Stockton",
+        "latitude": 30.8938,
+        "longitude": -102.8794,
+        "population": 8278
+      },
+      {
+        "name": "Alpine",
+        "latitude": 30.3583,
+        "longitude": -103.6608,
+        "population": 6006
+      },
+      {
+        "name": "Marfa",
+        "latitude": 30.3094,
+        "longitude": -104.0206,
+        "population": 1747
+      },
+      {
+        "name": "Presidio",
+        "latitude": 29.5602,
+        "longitude": -104.3661,
+        "population": 3821
+      },
+      {
+        "name": "Socorro",
+        "latitude": 31.6541,
+        "longitude": -106.3089,
+        "population": 34130
+      },
+      {
+        "name": "Anthony",
+        "latitude": 31.9919,
+        "longitude": -106.6019,
+        "population": 5011
+      },
+      {
+        "name": "Horizon City",
+        "latitude": 31.6802,
+        "longitude": -106.1833,
+        "population": 22540
+      },
+      {
+        "name": "Clint",
+        "latitude": 31.5924,
+        "longitude": -106.2283,
+        "population": 926
+      },
+      {
+        "name": "Brackettville",
+        "latitude": 29.3097,
+        "longitude": -100.4142,
+        "population": 1712
+      },
+      {
+        "name": "Zapata",
+        "latitude": 26.9068,
+        "longitude": -99.2714,
+        "population": 5003
+      },
+      {
+        "name": "Roma",
+        "latitude": 26.4074,
+        "longitude": -99.0153,
+        "population": 12225
+      },
+      {
+        "name": "Mission",
+        "latitude": 26.2159,
+        "longitude": -98.3253,
+        "population": 90354
+      },
+      {
+        "name": "Weslaco",
+        "latitude": 26.1598,
+        "longitude": -97.9911,
+        "population": 43784
+      },
+      {
+        "name": "Mercedes",
+        "latitude": 26.1473,
+        "longitude": -97.9139,
+        "population": 16314
+      },
+      {
+        "name": "San Benito",
+        "latitude": 26.1315,
+        "longitude": -97.6289,
+        "population": 24471
+      },
+      {
+        "name": "Los Fresnos",
+        "latitude": 26.0727,
+        "longitude": -97.4789,
+        "population": 8291
+      },
+      {
+        "name": "Port Isabel",
+        "latitude": 26.0738,
+        "longitude": -97.2092,
+        "population": 5556
+      },
+      {
+        "name": "South Padre Island",
+        "latitude": 26.114,
+        "longitude": -97.1647,
+        "population": 2773
+      },
+      {
+        "name": "Raymondville",
+        "latitude": 26.4799,
+        "longitude": -97.7839,
+        "population": 11284
+      },
+      {
+        "name": "Sinton",
+        "latitude": 27.9934,
+        "longitude": -97.5156,
+        "population": 5563
+      },
+      {
+        "name": "Portland",
+        "latitude": 27.8841,
+        "longitude": -97.3239,
+        "population": 22079
+      },
+      {
+        "name": "Aransas Pass",
+        "latitude": 27.9077,
+        "longitude": -97.15,
+        "population": 9348
+      },
+      {
+        "name": "Ingleside",
+        "latitude": 27.8724,
+        "longitude": -97.2136,
+        "population": 11122
+      },
+      {
+        "name": "Goliad",
+        "latitude": 28.6671,
+        "longitude": -97.3889,
+        "population": 1971
+      },
+      {
+        "name": "Cuero",
+        "latitude": 29.0996,
+        "longitude": -97.2897,
+        "population": 8165
+      },
+      {
+        "name": "Hallettsville",
+        "latitude": 29.4469,
+        "longitude": -96.9417,
+        "population": 2628
+      },
+      {
+        "name": "Edna",
+        "latitude": 28.978,
+        "longitude": -96.6464,
+        "population": 5499
+      },
+      {
+        "name": "Yoakum",
+        "latitude": 29.293,
+        "longitude": -97.1494,
+        "population": 5832
+      },
+      {
+        "name": "Shiner",
+        "latitude": 29.4252,
+        "longitude": -97.1678,
+        "population": 2178
+      },
+      {
+        "name": "Gonzales",
+        "latitude": 29.5016,
+        "longitude": -97.4453,
+        "population": 7238
+      },
+      {
+        "name": "Schertz",
+        "latitude": 29.5522,
+        "longitude": -98.2686,
+        "population": 44938
+      },
+      {
+        "name": "Cibolo",
+        "latitude": 29.5608,
+        "longitude": -98.2281,
+        "population": 29734
+      },
+      {
+        "name": "Universal City",
+        "latitude": 29.5469,
+        "longitude": -98.2917,
+        "population": 22572
+      },
+      {
+        "name": "Converse",
+        "latitude": 29.5082,
+        "longitude": -98.315,
+        "population": 29938
+      },
+      {
+        "name": "Live Oak",
+        "latitude": 29.5449,
+        "longitude": -98.3469,
+        "population": 16218
+      },
+      {
+        "name": "Kirby",
+        "latitude": 29.5038,
+        "longitude": -98.3869,
+        "population": 8117
+      },
+      {
+        "name": "Windcrest",
+        "latitude": 29.5321,
+        "longitude": -98.3542,
+        "population": 5663
+      },
+      {
+        "name": "Alamo Heights",
+        "latitude": 29.4791,
+        "longitude": -98.4658,
+        "population": 7545
+      },
+      {
+        "name": "Terrell Hills",
+        "latitude": 29.4763,
+        "longitude": -98.4514,
+        "population": 5148
+      },
+      {
+        "name": "Balcones Heights",
+        "latitude": 29.4969,
+        "longitude": -98.5258,
+        "population": 3467
+      },
+      {
+        "name": "Leon Valley",
+        "latitude": 29.4952,
+        "longitude": -98.6139,
+        "population": 12006
+      },
+      {
+        "name": "Helotes",
+        "latitude": 29.5703,
+        "longitude": -98.695,
+        "population": 10148
+      },
+      {
+        "name": "Lackland AFB area - Lytle",
+        "latitude": 29.2327,
+        "longitude": -98.7972,
+        "population": 2837
+      },
+      {
+        "name": "Pleasanton",
+        "latitude": 28.9663,
+        "longitude": -98.4736,
+        "population": 10561
+      },
+      {
+        "name": "Floresville",
+        "latitude": 29.1358,
+        "longitude": -98.1558,
+        "population": 8007
+      },
+      {
+        "name": "Pearsall",
+        "latitude": 28.8938,
+        "longitude": -99.0958,
+        "population": 9564
+      },
+      {
+        "name": "Carrizo Springs",
+        "latitude": 28.5218,
+        "longitude": -99.86,
+        "population": 5941
+      },
+      {
+        "name": "Crystal City",
+        "latitude": 28.678,
+        "longitude": -99.8317,
+        "population": 7079
+      }
+    ]
+  },
+  {
+    "state": "Kansas",
+    "towns": [
+      {
+        "name": "Wichita",
+        "latitude": 37.6872,
+        "longitude": -97.3301,
+        "population": 397532
+      },
+      {
+        "name": "Overland Park",
+        "latitude": 38.9822,
+        "longitude": -94.6708,
+        "population": 197238
+      },
+      {
+        "name": "Kansas City",
+        "latitude": 39.1155,
+        "longitude": -94.6268,
+        "population": 156607
+      },
+      {
+        "name": "Topeka",
+        "latitude": 39.0558,
+        "longitude": -95.689,
+        "population": 126587
+      },
+      {
+        "name": "Olathe",
+        "latitude": 38.8814,
+        "longitude": -94.8191,
+        "population": 143697
+      },
+      {
+        "name": "Lawrence",
+        "latitude": 38.9717,
+        "longitude": -95.2353,
+        "population": 99442
+      },
+      {
+        "name": "Shawnee",
+        "latitude": 38.9845,
+        "longitude": -94.7169,
+        "population": 68308
+      },
+      {
+        "name": "Manhattan",
+        "latitude": 39.1836,
+        "longitude": -96.5717,
+        "population": 55468
+      },
+      {
+        "name": "Lenexa",
+        "latitude": 38.9536,
+        "longitude": -94.7336,
+        "population": 59606
+      },
+      {
+        "name": "Salina",
+        "latitude": 38.8402,
+        "longitude": -97.6114,
+        "population": 46423
+      },
+      {
+        "name": "Hutchinson",
+        "latitude": 38.0608,
+        "longitude": -97.9298,
+        "population": 39308
+      },
+      {
+        "name": "Leavenworth",
+        "latitude": 39.3111,
+        "longitude": -94.9236,
+        "population": 37251
+      },
+      {
+        "name": "Leawood",
+        "latitude": 38.9067,
+        "longitude": -94.6327,
+        "population": 36038
+      },
+      {
+        "name": "Dodge City",
+        "latitude": 37.7528,
+        "longitude": -100.0171,
+        "population": 27722
+      },
+      {
+        "name": "Garden City",
+        "latitude": 37.9717,
+        "longitude": -100.8728,
+        "population": 26671
+      },
+      {
+        "name": "Junction City",
+        "latitude": 39.0286,
+        "longitude": -96.8311,
+        "population": 22995
+      },
+      {
+        "name": "Liberal",
+        "latitude": 37.0431,
+        "longitude": -100.9215,
+        "population": 19825
+      },
+      {
+        "name": "Emporia",
+        "latitude": 38.4039,
+        "longitude": -96.1817,
+        "population": 24916
+      },
+      {
+        "name": "Pittsburg",
+        "latitude": 37.4108,
+        "longitude": -94.7052,
+        "population": 20419
+      },
+      {
+        "name": "Hays",
+        "latitude": 38.8794,
+        "longitude": -99.3267,
+        "population": 22069
+      },
+      {
+        "name": "Great Bend",
+        "latitude": 38.3653,
+        "longitude": -98.7645,
+        "population": 14650
+      },
+      {
+        "name": "Abilene",
+        "latitude": 38.9172,
+        "longitude": -97.2167,
+        "population": 6553
+      },
+      {
+        "name": "Newton",
+        "latitude": 38.0467,
+        "longitude": -97.3453,
+        "population": 18817
+      },
+      {
+        "name": "Pratt",
+        "latitude": 37.6436,
+        "longitude": -98.7392,
+        "population": 6413
+      },
+      {
+        "name": "Independence",
+        "latitude": 37.2242,
+        "longitude": -95.7025,
+        "population": 8649
+      },
+      {
+        "name": "Coffeyville",
+        "latitude": 37.0375,
+        "longitude": -95.6161,
+        "population": 9192
+      },
+      {
+        "name": "Parsons",
+        "latitude": 37.3406,
+        "longitude": -95.2614,
+        "population": 9459
+      },
+      {
+        "name": "Ottawa",
+        "latitude": 38.6153,
+        "longitude": -95.2697,
+        "population": 12649
+      },
+      {
+        "name": "El Dorado",
+        "latitude": 37.8175,
+        "longitude": -96.8617,
+        "population": 12715
+      },
+      {
+        "name": "Arkansas City",
+        "latitude": 37.0628,
+        "longitude": -97.0392,
+        "population": 11539
+      },
+      {
+        "name": "Winfield",
+        "latitude": 37.2392,
+        "longitude": -97.0036,
+        "population": 11632
+      },
+      {
+        "name": "McPherson",
+        "latitude": 38.3706,
+        "longitude": -97.6636,
+        "population": 13195
+      },
+      {
+        "name": "Augusta",
+        "latitude": 37.6903,
+        "longitude": -96.9739,
+        "population": 9270
+      },
+      {
+        "name": "Colby",
+        "latitude": 39.3958,
+        "longitude": -101.0527,
+        "population": 5355
+      },
+      {
+        "name": "Ulysses",
+        "latitude": 37.5797,
+        "longitude": -101.354,
+        "population": 5972
+      },
+      {
+        "name": "Scott City",
+        "latitude": 38.4753,
+        "longitude": -100.9063,
+        "population": 3785
+      },
+      {
+        "name": "Goodland",
+        "latitude": 39.3514,
+        "longitude": -101.7107,
+        "population": 4489
+      },
+      {
+        "name": "Chanute",
+        "latitude": 37.6792,
+        "longitude": -95.4583,
+        "population": 9023
+      },
+      {
+        "name": "Fort Scott",
+        "latitude": 37.8381,
+        "longitude": -94.7052,
+        "population": 7698
+      },
+      {
+        "name": "Iola",
+        "latitude": 37.9225,
+        "longitude": -95.3994,
+        "population": 5270
+      },
+      {
+        "name": "Garnett",
+        "latitude": 38.2814,
+        "longitude": -95.2394,
+        "population": 3251
+      },
+      {
+        "name": "Paola",
+        "latitude": 38.5739,
+        "longitude": -94.8758,
+        "population": 5560
+      },
+      {
+        "name": "Osawatomie",
+        "latitude": 38.4953,
+        "longitude": -94.9544,
+        "population": 4187
+      },
+      {
+        "name": "Louisburg",
+        "latitude": 38.6192,
+        "longitude": -94.6819,
+        "population": 4977
+      },
+      {
+        "name": "Gardner",
+        "latitude": 38.8114,
+        "longitude": -94.928,
+        "population": 22367
+      },
+      {
+        "name": "Spring Hill",
+        "latitude": 38.7436,
+        "longitude": -94.8258,
+        "population": 10110
+      },
+      {
+        "name": "De Soto",
+        "latitude": 38.9845,
+        "longitude": -94.9619,
+        "population": 6741
+      },
+      {
+        "name": "Eudora",
+        "latitude": 38.9411,
+        "longitude": -95.0969,
+        "population": 6537
+      },
+      {
+        "name": "Baldwin City",
+        "latitude": 38.7739,
+        "longitude": -95.1855,
+        "population": 5201
+      },
+      {
+        "name": "Overbrook",
+        "latitude": 38.78,
+        "longitude": -95.5536,
+        "population": 1033
+      },
+      {
+        "name": "Osage City",
+        "latitude": 38.6339,
+        "longitude": -95.8247,
+        "population": 2756
+      },
+      {
+        "name": "Burlington",
+        "latitude": 38.1925,
+        "longitude": -95.7453,
+        "population": 2557
+      },
+      {
+        "name": "Fredonia",
+        "latitude": 37.5378,
+        "longitude": -95.8239,
+        "population": 2188
+      },
+      {
+        "name": "Neodesha",
+        "latitude": 37.4192,
+        "longitude": -95.6831,
+        "population": 2288
+      },
+      {
+        "name": "Yates Center",
+        "latitude": 37.8781,
+        "longitude": -95.7333,
+        "population": 1303
+      },
+      {
+        "name": "Eureka",
+        "latitude": 37.8278,
+        "longitude": -96.2892,
+        "population": 2363
+      },
+      {
+        "name": "Sedan",
+        "latitude": 37.1231,
+        "longitude": -96.1856,
+        "population": 870
+      },
+      {
+        "name": "Caney",
+        "latitude": 37.0142,
+        "longitude": -95.9256,
+        "population": 1918
+      },
+      {
+        "name": "Cherryvale",
+        "latitude": 37.2678,
+        "longitude": -95.5511,
+        "population": 2134
+      },
+      {
+        "name": "Mound City",
+        "latitude": 38.1442,
+        "longitude": -94.8122,
+        "population": 646
+      },
+      {
+        "name": "Pleasanton",
+        "latitude": 38.1781,
+        "longitude": -94.7175,
+        "population": 1210
+      },
+      {
+        "name": "Frontenac",
+        "latitude": 37.4542,
+        "longitude": -94.6908,
+        "population": 3418
+      },
+      {
+        "name": "Girard",
+        "latitude": 37.5133,
+        "longitude": -94.8444,
+        "population": 2621
+      },
+      {
+        "name": "Columbus",
+        "latitude": 37.1703,
+        "longitude": -94.8444,
+        "population": 3224
+      },
+      {
+        "name": "Baxter Springs",
+        "latitude": 37.0239,
+        "longitude": -94.7336,
+        "population": 3838
+      },
+      {
+        "name": "Galena",
+        "latitude": 37.0742,
+        "longitude": -94.6381,
+        "population": 2753
+      },
+      {
+        "name": "Oswego",
+        "latitude": 37.17,
+        "longitude": -95.1089,
+        "population": 1729
+      },
+      {
+        "name": "Humboldt",
+        "latitude": 37.8114,
+        "longitude": -95.4353,
+        "population": 1823
+      },
+      {
+        "name": "Lyndon",
+        "latitude": 38.6128,
+        "longitude": -95.6836,
+        "population": 1019
+      },
+      {
+        "name": "Melvern",
+        "latitude": 38.5028,
+        "longitude": -95.6353,
+        "population": 368
+      },
+      {
+        "name": "Pomona",
+        "latitude": 38.6064,
+        "longitude": -95.4511,
+        "population": 874
+      },
+      {
+        "name": "Waverly",
+        "latitude": 38.3942,
+        "longitude": -95.5989,
+        "population": 585
+      },
+      {
+        "name": "Greeley",
+        "latitude": 38.3636,
+        "longitude": -95.1272,
+        "population": 300
+      },
+      {
+        "name": "Council Grove",
+        "latitude": 38.6606,
+        "longitude": -96.4911,
+        "population": 2104
+      },
+      {
+        "name": "Herington",
+        "latitude": 38.6739,
+        "longitude": -96.9411,
+        "population": 2261
+      },
+      {
+        "name": "Ellsworth",
+        "latitude": 38.732,
+        "longitude": -98.2289,
+        "population": 2851
+      },
+      {
+        "name": "Larned",
+        "latitude": 38.1842,
+        "longitude": -99.0978,
+        "population": 3680
+      },
+      {
+        "name": "Lyons",
+        "latitude": 38.3442,
+        "longitude": -98.2014,
+        "population": 3453
+      },
+      {
+        "name": "Sterling",
+        "latitude": 38.2081,
+        "longitude": -98.2053,
+        "population": 2439
+      },
+      {
+        "name": "Nickerson",
+        "latitude": 38.1428,
+        "longitude": -98.0844,
+        "population": 1000
+      },
+      {
+        "name": "Buhler",
+        "latitude": 38.1367,
+        "longitude": -97.7742,
+        "population": 1437
+      },
+      {
+        "name": "Hesston",
+        "latitude": 38.1381,
+        "longitude": -97.4336,
+        "population": 3954
+      },
+      {
+        "name": "Halstead",
+        "latitude": 38.0006,
+        "longitude": -97.5094,
+        "population": 2099
+      },
+      {
+        "name": "Moundridge",
+        "latitude": 38.2028,
+        "longitude": -97.5167,
+        "population": 1889
+      },
+      {
+        "name": "Hillsboro",
+        "latitude": 38.3511,
+        "longitude": -97.2039,
+        "population": 3074
+      },
+      {
+        "name": "Peabody",
+        "latitude": 38.1692,
+        "longitude": -97.1106,
+        "population": 1163
+      },
+      {
+        "name": "Marion",
+        "latitude": 38.3481,
+        "longitude": -97.0178,
+        "population": 1856
+      },
+      {
+        "name": "Cottonwood Falls",
+        "latitude": 38.3703,
+        "longitude": -96.5469,
+        "population": 882
+      },
+      {
+        "name": "Strong City",
+        "latitude": 38.3928,
+        "longitude": -96.5344,
+        "population": 453
+      },
+      {
+        "name": "Florence",
+        "latitude": 38.2436,
+        "longitude": -96.9325,
+        "population": 618
+      },
+      {
+        "name": "North Newton",
+        "latitude": 38.0739,
+        "longitude": -97.3469,
+        "population": 1789
+      },
+      {
+        "name": "Sedgwick",
+        "latitude": 37.9178,
+        "longitude": -97.4239,
+        "population": 1660
+      },
+      {
+        "name": "Mulvane",
+        "latitude": 37.4767,
+        "longitude": -97.2378,
+        "population": 6411
+      },
+      {
+        "name": "Derby",
+        "latitude": 37.5478,
+        "longitude": -97.2653,
+        "population": 25000
+      },
+      {
+        "name": "Andover",
+        "latitude": 37.6825,
+        "longitude": -97.1358,
+        "population": 14210
+      },
+      {
+        "name": "Leon",
+        "latitude": 37.6914,
+        "longitude": -96.7831,
+        "population": 700
+      },
+      {
+        "name": "Burden",
+        "latitude": 37.3167,
+        "longitude": -96.7556,
+        "population": 527
+      },
+      {
+        "name": "Oxford",
+        "latitude": 37.2689,
+        "longitude": -97.1667,
+        "population": 1094
+      },
+      {
+        "name": "South Haven",
+        "latitude": 37.0531,
+        "longitude": -97.3967,
+        "population": 356
+      },
+      {
+        "name": "Wellington",
+        "latitude": 37.2656,
+        "longitude": -97.3958,
+        "population": 7979
+      },
+      {
+        "name": "Clearwater",
+        "latitude": 37.5028,
+        "longitude": -97.5014,
+        "population": 2533
+      },
+      {
+        "name": "Cheney",
+        "latitude": 37.6292,
+        "longitude": -97.7817,
+        "population": 2153
+      },
+      {
+        "name": "Bel Aire",
+        "latitude": 37.7731,
+        "longitude": -97.2361,
+        "population": 8019
+      },
+      {
+        "name": "Park City",
+        "latitude": 37.8084,
+        "longitude": -97.3219,
+        "population": 7608
+      },
+      {
+        "name": "Valley Center",
+        "latitude": 37.8339,
+        "longitude": -97.3736,
+        "population": 7108
+      },
+      {
+        "name": "Maize",
+        "latitude": 37.7742,
+        "longitude": -97.4653,
+        "population": 4098
+      },
+      {
+        "name": "Colwich",
+        "latitude": 37.7806,
+        "longitude": -97.5367,
+        "population": 1384
+      },
+      {
+        "name": "Goddard",
+        "latitude": 37.6614,
+        "longitude": -97.5697,
+        "population": 5311
+      },
+      {
+        "name": "Garden Plain",
+        "latitude": 37.6606,
+        "longitude": -97.6839,
+        "population": 905
+      },
+      {
+        "name": "Kingman",
+        "latitude": 37.6453,
+        "longitude": -98.1125,
+        "population": 2897
+      },
+      {
+        "name": "Anthony",
+        "latitude": 37.1531,
+        "longitude": -98.0364,
+        "population": 2177
+      },
+      {
+        "name": "Harper",
+        "latitude": 37.2856,
+        "longitude": -98.0256,
+        "population": 1491
+      },
+      {
+        "name": "Medicine Lodge",
+        "latitude": 37.2831,
+        "longitude": -98.5739,
+        "population": 2061
+      },
+      {
+        "name": "Coldwater",
+        "latitude": 37.2714,
+        "longitude": -99.3317,
+        "population": 808
+      },
+      {
+        "name": "Greensburg",
+        "latitude": 37.6039,
+        "longitude": -99.2939,
+        "population": 778
+      },
+      {
+        "name": "Sublette",
+        "latitude": 37.4853,
+        "longitude": -100.8451,
+        "population": 1607
+      },
+      {
+        "name": "Lakin",
+        "latitude": 37.9431,
+        "longitude": -101.2558,
+        "population": 2178
+      },
+      {
+        "name": "Syracuse",
+        "latitude": 37.9831,
+        "longitude": -101.7519,
+        "population": 1679
+      },
+      {
+        "name": "Tribune",
+        "latitude": 38.4714,
+        "longitude": -101.7528,
+        "population": 713
+      },
+      {
+        "name": "Dighton",
+        "latitude": 38.4831,
+        "longitude": -100.4656,
+        "population": 1050
+      },
+      {
+        "name": "Kinsley",
+        "latitude": 37.9217,
+        "longitude": -99.4103,
+        "population": 1566
+      },
+      {
+        "name": "Ellis",
+        "latitude": 38.9378,
+        "longitude": -99.5617,
+        "population": 2175
+      },
+      {
+        "name": "Russell",
+        "latitude": 38.8989,
+        "longitude": -98.8594,
+        "population": 4432
+      },
+      {
+        "name": "Plainville",
+        "latitude": 39.2342,
+        "longitude": -99.3022,
+        "population": 1918
+      },
+      {
+        "name": "Phillipsburg",
+        "latitude": 39.7517,
+        "longitude": -99.3225,
+        "population": 2440
+      },
+      {
+        "name": "Norton",
+        "latitude": 39.8331,
+        "longitude": -99.8914,
+        "population": 2786
+      },
+      {
+        "name": "St. Francis",
+        "latitude": 39.7731,
+        "longitude": -101.7994,
+        "population": 1264
+      },
+      {
+        "name": "Atwood",
+        "latitude": 39.8078,
+        "longitude": -101.0528,
+        "population": 1237
+      },
+      {
+        "name": "Oberlin",
+        "latitude": 39.8236,
+        "longitude": -100.5292,
+        "population": 1681
+      },
+      {
+        "name": "Concordia",
+        "latitude": 39.5706,
+        "longitude": -97.6628,
+        "population": 4854
+      },
+      {
+        "name": "Beloit",
+        "latitude": 39.4614,
+        "longitude": -98.1067,
+        "population": 3774
+      },
+      {
+        "name": "Minneapolis",
+        "latitude": 39.1228,
+        "longitude": -97.7083,
+        "population": 1971
+      },
+      {
+        "name": "Chapman",
+        "latitude": 38.9697,
+        "longitude": -97.0239,
+        "population": 1455
+      },
+      {
+        "name": "Fort Riley",
+        "latitude": 39.0628,
+        "longitude": -96.7822,
+        "population": 6832
+      },
+      {
+        "name": "Wamego",
+        "latitude": 39.2036,
+        "longitude": -96.3031,
+        "population": 4725
+      },
+      {
+        "name": "St. George",
+        "latitude": 39.1831,
+        "longitude": -96.4258,
+        "population": 617
+      },
+      {
+        "name": "Silver Lake",
+        "latitude": 39.1003,
+        "longitude": -95.8589,
+        "population": 1478
+      },
+      {
+        "name": "Rossville",
+        "latitude": 39.1328,
+        "longitude": -95.9489,
+        "population": 1196
+      },
+      {
+        "name": "St. Marys",
+        "latitude": 39.1958,
+        "longitude": -96.0661,
+        "population": 2712
+      },
+      {
+        "name": "Alma",
+        "latitude": 39.0181,
+        "longitude": -96.2878,
+        "population": 830
+      },
+      {
+        "name": "Maple Hill",
+        "latitude": 39.0872,
+        "longitude": -96.0289,
+        "population": 582
+      },
+      {
+        "name": "Carbondale",
+        "latitude": 38.8114,
+        "longitude": -95.6906,
+        "population": 1488
+      },
+      {
+        "name": "Quenemo",
+        "latitude": 38.5853,
+        "longitude": -95.5378,
+        "population": 384
+      },
+      {
+        "name": "Lebo",
+        "latitude": 38.4108,
+        "longitude": -95.8567,
+        "population": 883
+      },
+      {
+        "name": "Burlingame",
+        "latitude": 38.7453,
+        "longitude": -95.8339,
+        "population": 923
+      },
+      {
+        "name": "Chetopa",
+        "latitude": 37.0381,
+        "longitude": -95.0894,
+        "population": 1030
+      },
+      {
+        "name": "Merriam",
+        "latitude": 38.9817,
+        "longitude": -94.6967,
+        "population": 11411
+      },
+      {
+        "name": "Prairie Village",
+        "latitude": 38.9917,
+        "longitude": -94.6344,
+        "population": 24400
+      },
+      {
+        "name": "Mission",
+        "latitude": 39.0206,
+        "longitude": -94.6553,
+        "population": 9323
+      },
+      {
+        "name": "Roeland Park",
+        "latitude": 39.0339,
+        "longitude": -94.6344,
+        "population": 7029
+      },
+      {
+        "name": "Westwood",
+        "latitude": 39.0336,
+        "longitude": -94.6119,
+        "population": 1654
+      },
+      {
+        "name": "Mission Hills",
+        "latitude": 39.0136,
+        "longitude": -94.6147,
+        "population": 3498
+      },
+      {
+        "name": "Fairway",
+        "latitude": 39.0178,
+        "longitude": -94.6292,
+        "population": 3987
+      },
+      {
+        "name": "Westwood Hills",
+        "latitude": 39.0342,
+        "longitude": -94.6064,
+        "population": 414
+      },
+      {
+        "name": "Lake Quivira",
+        "latitude": 39.0131,
+        "longitude": -94.7631,
+        "population": 948
+      },
+      {
+        "name": "Basehor",
+        "latitude": 39.1361,
+        "longitude": -94.9386,
+        "population": 7024
+      },
+      {
+        "name": "Tonganoxie",
+        "latitude": 39.1103,
+        "longitude": -95.0822,
+        "population": 5764
+      },
+      {
+        "name": "Lansing",
+        "latitude": 39.2492,
+        "longitude": -94.8908,
+        "population": 11356
+      },
+      {
+        "name": "Bonner Springs",
+        "latitude": 39.0614,
+        "longitude": -94.8847,
+        "population": 7741
+      },
+      {
+        "name": "Edwardsville",
+        "latitude": 39.0603,
+        "longitude": -94.8203,
+        "population": 4503
+      },
+      {
+        "name": "Argentine",
+        "latitude": 39.0978,
+        "longitude": -94.6814,
+        "population": 14000
+      },
+      {
+        "name": "Wyandotte",
+        "latitude": 39.1189,
+        "longitude": -94.7078,
+        "population": 9000
+      },
+      {
+        "name": "Atchison",
+        "latitude": 39.5631,
+        "longitude": -95.1197,
+        "population": 10278
+      },
+      {
+        "name": "Horton",
+        "latitude": 39.6614,
+        "longitude": -95.5247,
+        "population": 1694
+      },
+      {
+        "name": "Sabetha",
+        "latitude": 39.9036,
+        "longitude": -95.7969,
+        "population": 2593
+      },
+      {
+        "name": "Hiawatha",
+        "latitude": 39.8531,
+        "longitude": -95.535,
+        "population": 3030
+      },
+      {
+        "name": "Highland",
+        "latitude": 39.8586,
+        "longitude": -95.2697,
+        "population": 985
+      },
+      {
+        "name": "Troy",
+        "latitude": 39.7847,
+        "longitude": -95.0933,
+        "population": 999
+      },
+      {
+        "name": "Seneca",
+        "latitude": 39.8342,
+        "longitude": -96.06,
+        "population": 2073
+      },
+      {
+        "name": "Baileyville",
+        "latitude": 39.8361,
+        "longitude": -96.1878,
+        "population": 313
+      },
+      {
+        "name": "Marysville",
+        "latitude": 39.8436,
+        "longitude": -96.6469,
+        "population": 3271
+      },
+      {
+        "name": "Waterville",
+        "latitude": 39.6864,
+        "longitude": -96.7481,
+        "population": 635
+      },
+      {
+        "name": "Frankfort",
+        "latitude": 39.705,
+        "longitude": -96.4153,
+        "population": 693
+      },
+      {
+        "name": "Axtell",
+        "latitude": 39.8764,
+        "longitude": -96.2589,
+        "population": 395
+      },
+      {
+        "name": "Clifton",
+        "latitude": 39.5692,
+        "longitude": -97.2847,
+        "population": 441
+      },
+      {
+        "name": "Belleville",
+        "latitude": 39.8256,
+        "longitude": -97.6319,
+        "population": 1849
+      },
+      {
+        "name": "Republic",
+        "latitude": 39.9261,
+        "longitude": -97.8236,
+        "population": 301
+      },
+      {
+        "name": "Mankato",
+        "latitude": 39.7864,
+        "longitude": -98.2097,
+        "population": 807
+      },
+      {
+        "name": "Jewell",
+        "latitude": 39.6714,
+        "longitude": -98.1533,
+        "population": 390
+      },
+      {
+        "name": "Smith Center",
+        "latitude": 39.7817,
+        "longitude": -98.7831,
+        "population": 1659
+      },
+      {
+        "name": "Osborne",
+        "latitude": 39.4431,
+        "longitude": -98.6961,
+        "population": 1355
+      },
+      {
+        "name": "WaKeeney",
+        "latitude": 39.0231,
+        "longitude": -99.8769,
+        "population": 1892
+      },
+      {
+        "name": "Quinter",
+        "latitude": 39.0597,
+        "longitude": -100.2367,
+        "population": 881
+      },
+      {
+        "name": "Oakley",
+        "latitude": 39.1261,
+        "longitude": -100.8572,
+        "population": 1957
+      },
+      {
+        "name": "Bird City",
+        "latitude": 39.7464,
+        "longitude": -101.5358,
+        "population": 415
+      }
+    ]
+  },
+  {
+    "state": "Arkansas",
+    "towns": [
+      {
+        "name": "Little Rock",
+        "latitude": 34.7465,
+        "longitude": -92.2896,
+        "population": 203436
+      },
+      {
+        "name": "Fort Smith",
+        "latitude": 35.3859,
+        "longitude": -94.3985,
+        "population": 89805
+      },
+      {
+        "name": "Fayetteville",
+        "latitude": 36.0726,
+        "longitude": -94.1574,
+        "population": 99319
+      },
+      {
+        "name": "Springdale",
+        "latitude": 36.1867,
+        "longitude": -94.1288,
+        "population": 88160
+      },
+      {
+        "name": "Jonesboro",
+        "latitude": 35.8423,
+        "longitude": -90.7043,
+        "population": 81888
+      },
+      {
+        "name": "North Little Rock",
+        "latitude": 34.7695,
+        "longitude": -92.2671,
+        "population": 68523
+      },
+      {
+        "name": "Conway",
+        "latitude": 35.0887,
+        "longitude": -92.4421,
+        "population": 71109
+      },
+      {
+        "name": "Rogers",
+        "latitude": 36.332,
+        "longitude": -94.1188,
+        "population": 69683
+      },
+      {
+        "name": "Pine Bluff",
+        "latitude": 34.2284,
+        "longitude": -92.0032,
+        "population": 39677
+      },
+      {
+        "name": "Bentonville",
+        "latitude": 36.3728,
+        "longitude": -94.2088,
+        "population": 58169
+      },
+      {
+        "name": "Hot Springs",
+        "latitude": 34.5037,
+        "longitude": -93.0552,
+        "population": 38771
+      },
+      {
+        "name": "Benton",
+        "latitude": 34.5645,
+        "longitude": -92.5868,
+        "population": 38076
+      },
+      {
+        "name": "Texarkana",
+        "latitude": 33.4251,
+        "longitude": -94.0477,
+        "population": 29891
+      },
+      {
+        "name": "Sherwood",
+        "latitude": 34.8151,
+        "longitude": -92.2243,
+        "population": 33069
+      },
+      {
+        "name": "Jacksonville",
+        "latitude": 34.8665,
+        "longitude": -92.1099,
+        "population": 28545
+      },
+      {
+        "name": "Russellville",
+        "latitude": 35.2784,
+        "longitude": -93.1338,
+        "population": 29938
+      },
+      {
+        "name": "Searcy",
+        "latitude": 35.2509,
+        "longitude": -91.7365,
+        "population": 27244
+      },
+      {
+        "name": "Cabot",
+        "latitude": 34.9743,
+        "longitude": -92.0165,
+        "population": 30100
+      },
+      {
+        "name": "Van Buren",
+        "latitude": 35.4362,
+        "longitude": -94.3485,
+        "population": 25437
+      },
+      {
+        "name": "El Dorado",
+        "latitude": 33.2076,
+        "longitude": -92.6657,
+        "population": 16951
+      },
+      {
+        "name": "Bryant",
+        "latitude": 34.5987,
+        "longitude": -92.4885,
+        "population": 26226
+      },
+      {
+        "name": "West Memphis",
+        "latitude": 35.1465,
+        "longitude": -90.1845,
+        "population": 23293
+      },
+      {
+        "name": "Paragould",
+        "latitude": 36.0584,
+        "longitude": -90.5076,
+        "population": 30486
+      },
+      {
+        "name": "Siloam Springs",
+        "latitude": 36.1882,
+        "longitude": -94.5405,
+        "population": 18814
+      },
+      {
+        "name": "Blytheville",
+        "latitude": 35.927,
+        "longitude": -89.9187,
+        "population": 12773
+      },
+      {
+        "name": "Harrison",
+        "latitude": 36.2298,
+        "longitude": -93.1077,
+        "population": 14158
+      },
+      {
+        "name": "Camden",
+        "latitude": 33.5845,
+        "longitude": -92.8343,
+        "population": 10674
+      },
+      {
+        "name": "Maumelle",
+        "latitude": 34.8568,
+        "longitude": -92.4024,
+        "population": 22937
+      },
+      {
+        "name": "Arkadelphia",
+        "latitude": 34.1201,
+        "longitude": -93.0538,
+        "population": 10280
+      },
+      {
+        "name": "Magnolia",
+        "latitude": 33.2668,
+        "longitude": -93.2388,
+        "population": 11691
+      },
+      {
+        "name": "Batesville",
+        "latitude": 35.7698,
+        "longitude": -91.641,
+        "population": 11562
+      },
+      {
+        "name": "Stuttgart",
+        "latitude": 34.4954,
+        "longitude": -91.5521,
+        "population": 8226
+      },
+      {
+        "name": "Hope",
+        "latitude": 33.6674,
+        "longitude": -93.5835,
+        "population": 9387
+      },
+      {
+        "name": "Forrest City",
+        "latitude": 35.0112,
+        "longitude": -90.7898,
+        "population": 12764
+      },
+      {
+        "name": "Clarksville",
+        "latitude": 35.4712,
+        "longitude": -93.4663,
+        "population": 10081
+      },
+      {
+        "name": "Morrilton",
+        "latitude": 35.1512,
+        "longitude": -92.7427,
+        "population": 6956
+      },
+      {
+        "name": "Mountain Home",
+        "latitude": 36.3354,
+        "longitude": -92.3835,
+        "population": 13517
+      },
+      {
+        "name": "Helena-West Helena",
+        "latitude": 34.529,
+        "longitude": -90.5957,
+        "population": 9987
+      },
+      {
+        "name": "Osceola",
+        "latitude": 35.6987,
+        "longitude": -89.9693,
+        "population": 7117
+      },
+      {
+        "name": "Mena",
+        "latitude": 34.5862,
+        "longitude": -94.2399,
+        "population": 5677
+      },
+      {
+        "name": "Greenwood",
+        "latitude": 35.2159,
+        "longitude": -94.2561,
+        "population": 10385
+      },
+      {
+        "name": "Alma",
+        "latitude": 35.4817,
+        "longitude": -94.2203,
+        "population": 6376
+      },
+      {
+        "name": "Centerton",
+        "latitude": 36.3598,
+        "longitude": -94.2869,
+        "population": 21827
+      },
+      {
+        "name": "Lowell",
+        "latitude": 36.2562,
+        "longitude": -94.1283,
+        "population": 11596
+      },
+      {
+        "name": "Cave Springs",
+        "latitude": 36.2709,
+        "longitude": -94.2258,
+        "population": 7248
+      },
+      {
+        "name": "Bella Vista",
+        "latitude": 36.4756,
+        "longitude": -94.2686,
+        "population": 32074
+      },
+      {
+        "name": "Pea Ridge",
+        "latitude": 36.4548,
+        "longitude": -94.0267,
+        "population": 6915
+      },
+      {
+        "name": "Gravette",
+        "latitude": 36.4228,
+        "longitude": -94.4533,
+        "population": 4173
+      },
+      {
+        "name": "Decatur",
+        "latitude": 36.3459,
+        "longitude": -94.4611,
+        "population": 1850
+      },
+      {
+        "name": "Gentry",
+        "latitude": 36.2675,
+        "longitude": -94.4894,
+        "population": 4175
+      },
+      {
+        "name": "Elkins",
+        "latitude": 36.0028,
+        "longitude": -94.0061,
+        "population": 3578
+      },
+      {
+        "name": "Prairie Grove",
+        "latitude": 35.9784,
+        "longitude": -94.3144,
+        "population": 6490
+      },
+      {
+        "name": "Lincoln",
+        "latitude": 35.9512,
+        "longitude": -94.4183,
+        "population": 2585
+      },
+      {
+        "name": "Farmington",
+        "latitude": 36.0421,
+        "longitude": -94.2475,
+        "population": 8760
+      },
+      {
+        "name": "Cedarville",
+        "latitude": 35.5717,
+        "longitude": -94.3625,
+        "population": 1591
+      },
+      {
+        "name": "Dyer",
+        "latitude": 35.4898,
+        "longitude": -94.2125,
+        "population": 839
+      },
+      {
+        "name": "Mulberry",
+        "latitude": 35.5048,
+        "longitude": -94.0517,
+        "population": 1613
+      },
+      {
+        "name": "Ozark",
+        "latitude": 35.4873,
+        "longitude": -93.8297,
+        "population": 3734
+      },
+      {
+        "name": "Altus",
+        "latitude": 35.4387,
+        "longitude": -93.7725,
+        "population": 827
+      },
+      {
+        "name": "Paris",
+        "latitude": 35.2923,
+        "longitude": -93.7303,
+        "population": 3340
+      },
+      {
+        "name": "Charleston",
+        "latitude": 35.3012,
+        "longitude": -94.0408,
+        "population": 2773
+      },
+      {
+        "name": "Mansfield",
+        "latitude": 35.0598,
+        "longitude": -94.2533,
+        "population": 1060
+      },
+      {
+        "name": "Waldron",
+        "latitude": 34.899,
+        "longitude": -94.0897,
+        "population": 3655
+      },
+      {
+        "name": "Cove",
+        "latitude": 34.4059,
+        "longitude": -94.4253,
+        "population": 462
+      },
+      {
+        "name": "De Queen",
+        "latitude": 34.0376,
+        "longitude": -94.3436,
+        "population": 6735
+      },
+      {
+        "name": "Horatio",
+        "latitude": 33.9418,
+        "longitude": -94.3722,
+        "population": 870
+      },
+      {
+        "name": "Ashdown",
+        "latitude": 33.6737,
+        "longitude": -94.1322,
+        "population": 4372
+      },
+      {
+        "name": "Nashville",
+        "latitude": 33.9465,
+        "longitude": -93.8475,
+        "population": 4469
+      },
+      {
+        "name": "Murfreesboro",
+        "latitude": 34.0726,
+        "longitude": -93.6897,
+        "population": 1658
+      },
+      {
+        "name": "Prescott",
+        "latitude": 33.8026,
+        "longitude": -93.3797,
+        "population": 2979
+      },
+      {
+        "name": "Smackover",
+        "latitude": 33.3637,
+        "longitude": -92.7208,
+        "population": 1740
+      },
+      {
+        "name": "Strong",
+        "latitude": 33.1065,
+        "longitude": -92.3383,
+        "population": 527
+      },
+      {
+        "name": "Junction City",
+        "latitude": 33.0237,
+        "longitude": -92.7169,
+        "population": 643
+      },
+      {
+        "name": "Crossett",
+        "latitude": 33.1265,
+        "longitude": -91.9644,
+        "population": 5282
+      },
+      {
+        "name": "Hamburg",
+        "latitude": 33.2284,
+        "longitude": -91.7972,
+        "population": 2750
+      },
+      {
+        "name": "Monticello",
+        "latitude": 33.6334,
+        "longitude": -91.7883,
+        "population": 8960
+      },
+      {
+        "name": "White Hall",
+        "latitude": 34.2762,
+        "longitude": -92.105,
+        "population": 6163
+      },
+      {
+        "name": "Redfield",
+        "latitude": 34.4412,
+        "longitude": -92.1858,
+        "population": 1186
+      },
+      {
+        "name": "Sheridan",
+        "latitude": 34.3059,
+        "longitude": -92.4008,
+        "population": 5098
+      },
+      {
+        "name": "Malvern",
+        "latitude": 34.3623,
+        "longitude": -92.8131,
+        "population": 10944
+      },
+      {
+        "name": "Lonoke",
+        "latitude": 34.7873,
+        "longitude": -91.8986,
+        "population": 4546
+      },
+      {
+        "name": "Carlisle",
+        "latitude": 34.7851,
+        "longitude": -91.7503,
+        "population": 2240
+      },
+      {
+        "name": "Hazen",
+        "latitude": 34.7809,
+        "longitude": -91.5731,
+        "population": 1465
+      },
+      {
+        "name": "DeValls Bluff",
+        "latitude": 34.7709,
+        "longitude": -91.4511,
+        "population": 624
+      },
+      {
+        "name": "DeWitt",
+        "latitude": 34.2923,
+        "longitude": -91.3378,
+        "population": 3034
+      },
+      {
+        "name": "Dumas",
+        "latitude": 33.8873,
+        "longitude": -91.4922,
+        "population": 4123
+      },
+      {
+        "name": "McGehee",
+        "latitude": 33.6276,
+        "longitude": -91.3964,
+        "population": 4219
+      },
+      {
+        "name": "Lake Village",
+        "latitude": 33.3284,
+        "longitude": -91.2836,
+        "population": 2218
+      },
+      {
+        "name": "Eudora",
+        "latitude": 33.1101,
+        "longitude": -91.2617,
+        "population": 2234
+      },
+      {
+        "name": "Marianna",
+        "latitude": 34.7762,
+        "longitude": -90.7522,
+        "population": 3634
+      },
+      {
+        "name": "Wynne",
+        "latitude": 35.2262,
+        "longitude": -90.7897,
+        "population": 8252
+      },
+      {
+        "name": "Marked Tree",
+        "latitude": 35.5262,
+        "longitude": -90.4194,
+        "population": 2204
+      },
+      {
+        "name": "Lepanto",
+        "latitude": 35.6087,
+        "longitude": -90.3261,
+        "population": 1891
+      },
+      {
+        "name": "Manila",
+        "latitude": 35.8837,
+        "longitude": -90.1658,
+        "population": 3379
+      },
+      {
+        "name": "Gosnell",
+        "latitude": 35.959,
+        "longitude": -89.9761,
+        "population": 3582
+      },
+      {
+        "name": "Leachville",
+        "latitude": 35.9348,
+        "longitude": -90.2553,
+        "population": 1989
+      },
+      {
+        "name": "Dell",
+        "latitude": 35.8473,
+        "longitude": -90.0331,
+        "population": 343
+      },
+      {
+        "name": "Luxora",
+        "latitude": 35.7587,
+        "longitude": -89.9308,
+        "population": 887
+      },
+      {
+        "name": "Wilson",
+        "latitude": 35.5684,
+        "longitude": -90.0294,
+        "population": 917
+      },
+      {
+        "name": "Brookland",
+        "latitude": 35.8934,
+        "longitude": -90.5847,
+        "population": 5215
+      },
+      {
+        "name": "Bono",
+        "latitude": 35.9073,
+        "longitude": -90.7711,
+        "population": 2612
+      },
+      {
+        "name": "Bay",
+        "latitude": 35.7426,
+        "longitude": -90.5581,
+        "population": 1897
+      },
+      {
+        "name": "Harrisburg",
+        "latitude": 35.5648,
+        "longitude": -90.7158,
+        "population": 2280
+      },
+      {
+        "name": "Trumann",
+        "latitude": 35.6734,
+        "longitude": -90.5089,
+        "population": 7135
+      },
+      {
+        "name": "Newport",
+        "latitude": 35.6012,
+        "longitude": -91.2819,
+        "population": 7439
+      },
+      {
+        "name": "Melbourne",
+        "latitude": 36.0598,
+        "longitude": -91.9019,
+        "population": 1779
+      },
+      {
+        "name": "Mountain View",
+        "latitude": 35.8676,
+        "longitude": -92.1175,
+        "population": 2891
+      },
+      {
+        "name": "Clinton",
+        "latitude": 35.5926,
+        "longitude": -92.4606,
+        "population": 2493
+      },
+      {
+        "name": "Greenbrier",
+        "latitude": 35.2342,
+        "longitude": -92.3883,
+        "population": 7108
+      },
+      {
+        "name": "Vilonia",
+        "latitude": 35.0906,
+        "longitude": -92.2067,
+        "population": 4419
+      },
+      {
+        "name": "Heber Springs",
+        "latitude": 35.4912,
+        "longitude": -92.0306,
+        "population": 7225
+      },
+      {
+        "name": "Beebe",
+        "latitude": 35.0712,
+        "longitude": -91.8808,
+        "population": 9141
+      },
+      {
+        "name": "Bald Knob",
+        "latitude": 35.3073,
+        "longitude": -91.5811,
+        "population": 3172
+      },
+      {
+        "name": "Judsonia",
+        "latitude": 35.2712,
+        "longitude": -91.6369,
+        "population": 1980
+      },
+      {
+        "name": "Bradford",
+        "latitude": 35.4262,
+        "longitude": -91.4506,
+        "population": 863
+      },
+      {
+        "name": "Newark",
+        "latitude": 35.7062,
+        "longitude": -91.4317,
+        "population": 1270
+      },
+      {
+        "name": "Pocahontas",
+        "latitude": 36.2612,
+        "longitude": -90.9736,
+        "population": 6457
+      },
+      {
+        "name": "Corning",
+        "latitude": 36.4073,
+        "longitude": -90.5811,
+        "population": 3373
+      },
+      {
+        "name": "Piggott",
+        "latitude": 36.3812,
+        "longitude": -90.1908,
+        "population": 3480
+      },
+      {
+        "name": "Rector",
+        "latitude": 36.2723,
+        "longitude": -90.2897,
+        "population": 1782
+      },
+      {
+        "name": "Hornersville MO area - Kennett",
+        "latitude": 36.1284,
+        "longitude": -90.0556,
+        "population": 800
+      },
+      {
+        "name": "Hardy",
+        "latitude": 36.3212,
+        "longitude": -91.4817,
+        "population": 680
+      },
+      {
+        "name": "Cherokee Village",
+        "latitude": 36.3062,
+        "longitude": -91.5308,
+        "population": 4547
+      },
+      {
+        "name": "Salem",
+        "latitude": 36.3723,
+        "longitude": -91.8228,
+        "population": 1561
+      },
+      {
+        "name": "Bull Shoals",
+        "latitude": 36.3773,
+        "longitude": -92.5833,
+        "population": 1979
+      },
+      {
+        "name": "Flippin",
+        "latitude": 36.2784,
+        "longitude": -92.5994,
+        "population": 1355
+      },
+      {
+        "name": "Yellville",
+        "latitude": 36.2262,
+        "longitude": -92.6831,
+        "population": 1278
+      },
+      {
+        "name": "Marshall",
+        "latitude": 35.9173,
+        "longitude": -92.6333,
+        "population": 1317
+      },
+      {
+        "name": "Berryville",
+        "latitude": 36.3637,
+        "longitude": -93.5675,
+        "population": 5597
+      },
+      {
+        "name": "Green Forest",
+        "latitude": 36.3373,
+        "longitude": -93.4297,
+        "population": 3058
+      },
+      {
+        "name": "Eureka Springs",
+        "latitude": 36.4012,
+        "longitude": -93.7342,
+        "population": 2042
+      },
+      {
+        "name": "Monett MO area - Noel",
+        "latitude": 36.5437,
+        "longitude": -94.4861,
+        "population": 1200
+      },
+      {
+        "name": "Highfill",
+        "latitude": 36.3062,
+        "longitude": -94.3894,
+        "population": 3023
+      },
+      {
+        "name": "Tontitown",
+        "latitude": 36.1828,
+        "longitude": -94.2319,
+        "population": 4989
+      },
+      {
+        "name": "Johnson",
+        "latitude": 36.1248,
+        "longitude": -94.1692,
+        "population": 4175
+      },
+      {
+        "name": "Elm Springs",
+        "latitude": 36.2012,
+        "longitude": -94.2342,
+        "population": 2948
+      },
+      {
+        "name": "West Fork",
+        "latitude": 35.929,
+        "longitude": -94.1897,
+        "population": 2721
+      },
+      {
+        "name": "Greenland",
+        "latitude": 35.9887,
+        "longitude": -94.1692,
+        "population": 1476
+      }
+    ]
+  }
+]
