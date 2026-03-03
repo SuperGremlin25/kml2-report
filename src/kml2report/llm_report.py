@@ -1,14 +1,16 @@
 """LLM-powered formal report generator.
 
 Takes a field-notes Markdown summary and sends it to an LLM (OpenAI,
-Anthropic, Ollama, or Hugging Face Inference API) with a system prompt
-tuned for producing a polished, professional CRO/HLD field report.
+Anthropic, Ollama, Hugging Face Inference API, or Cloudflare Workers AI)
+with a system prompt tuned for producing a polished, professional CRO/HLD
+field report.
 
 Provider is selected via the ``provider`` argument:
   - ``openai``      — requires ``OPENAI_API_KEY`` env var
   - ``anthropic``   — requires ``ANTHROPIC_API_KEY`` env var
   - ``ollama``      — requires a running Ollama instance (default model: llama3)
   - ``huggingface`` — requires ``HF_TOKEN`` env var (included with HF Pro)
+  - ``cloudflare``  — requires ``CF_API_TOKEN`` and ``CF_ACCOUNT_ID`` env vars
 """
 
 from __future__ import annotations
@@ -62,10 +64,12 @@ def generate_formal_report(
     summary_md : str
         The Markdown field-notes summary produced by the summarizer.
     provider : str
-        One of ``"openai"``, ``"anthropic"``, or ``"ollama"``.
+        One of ``"openai"``, ``"anthropic"``, ``"ollama"``, ``"huggingface"``,
+        or ``"cloudflare"``.
     model : str | None
         Model name override.  Defaults per provider:
-        openai → gpt-4o, anthropic → claude-sonnet-4-20250514, ollama → llama3.
+        openai → gpt-4o, anthropic → claude-sonnet-4-20250514,
+        ollama → llama3, cloudflare → @cf/meta/llama-3.1-8b-instruct.
     temperature : float
         Sampling temperature (lower = more deterministic).
     base_url : str | None
@@ -92,10 +96,17 @@ def generate_formal_report(
             temperature,
             base_url,
         )
+    elif provider == "cloudflare":
+        return _call_cloudflare(
+            summary_md,
+            model or "@cf/meta/llama-3.1-8b-instruct",
+            temperature,
+            base_url,
+        )
     else:
         raise ValueError(
             f"Unknown LLM provider '{provider}'. "
-            f"Choose from: openai, anthropic, ollama, huggingface"
+            f"Choose from: openai, anthropic, ollama, huggingface, cloudflare"
         )
 
 
@@ -259,5 +270,57 @@ def _call_huggingface(
         ],
         temperature=temperature,
         max_tokens=8192,
+    )
+    return response.choices[0].message.content or ""
+
+
+# ------------------------------------------------------------------
+# Cloudflare Workers AI
+# ------------------------------------------------------------------
+
+def _call_cloudflare(
+    summary_md: str,
+    model: str,
+    temperature: float,
+    base_url: str | None,
+) -> str:
+    try:
+        from openai import OpenAI
+    except ImportError:
+        raise ImportError(
+            "openai package not installed. Run:\n"
+            "  pip install openai"
+        )
+
+    api_token = os.environ.get("CF_API_TOKEN")
+    if not api_token:
+        raise EnvironmentError(
+            "CF_API_TOKEN environment variable is not set.\n"
+            "Set it with:  set CF_API_TOKEN=<your-cloudflare-api-token>"
+        )
+
+    account_id = os.environ.get("CF_ACCOUNT_ID")
+    if not account_id:
+        raise EnvironmentError(
+            "CF_ACCOUNT_ID environment variable is not set.\n"
+            "Set it with:  set CF_ACCOUNT_ID=<your-cloudflare-account-id>"
+        )
+
+    cf_base_url = base_url or (
+        f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1"
+    )
+
+    client = OpenAI(api_key=api_token, base_url=cf_base_url)
+    response = client.chat.completions.create(
+        model=model,
+        temperature=temperature,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": (
+                "Below are the raw field notes summary for this project. "
+                "Please produce the formal report.\n\n"
+                + summary_md
+            )},
+        ],
     )
     return response.choices[0].message.content or ""
