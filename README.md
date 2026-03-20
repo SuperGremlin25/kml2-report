@@ -17,7 +17,8 @@ Upload KML/KMZ files from field surveys and generate:
 - **Parsed data tables** — all features with attributes, coordinates, geometry
 - **Location-intelligent field notes summary** — grouped by theme and geographic corridor with geocoded roads, towns, bearings, and distances
 - **Talk-to-text auto-correction** — common speech-to-text errors are cleaned automatically
-- **Formal professional report** — LLM-generated CRO/HLD field assessment via Hugging Face Inference API
+- **Formal professional report** — LLM-generated field assessment via Hugging Face Inference API
+- **Geometry analysis** — aggregate duct/cable lengths by type for quantity takeoff
 
 ---
 
