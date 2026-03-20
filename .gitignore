@@ -12,3 +12,7 @@ output/
 .pytest_cache/
 *.tmp
 *.bak
+
+# Ignore all files in docs except USER_GUIDE.md
+docs/*
+!docs/USER_GUIDE.md
