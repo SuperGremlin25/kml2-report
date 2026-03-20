@@ -315,11 +315,12 @@ if not uploaded_files:
           coordinates, road names, bearings, and geographic corridors
         - **Filter** by town using a portable town-config.json
         - **Download** CSV, JSON, Markdown, or Word (.docx) reports
+        - **Analyze** geometry and aggregate duct/cable lengths by type
 
         ---
 
-        *Built for HLD/CRO field teams. All processing runs server-side —
-        your KML files are not stored permanently.*
+        *Professional KML/KMZ analysis tool for fiber construction projects. 
+        All processing runs server-side — your files are not stored permanently.*
         """
     )
     st.stop()
@@ -331,8 +332,8 @@ file_data: list[tuple[bytes, str]] = [
 file_names = [f.name for f in uploaded_files]
 stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
 
-tab_preview, tab_summary, tab_report, tab_download, tab_inject = st.tabs(
-    ["📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads", "🗺️ KML Injector"]
+tab_preview, tab_summary, tab_report, tab_download, tab_inject, tab_geometry = st.tabs(
+    ["📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads", "🗺️ KML Injector", "📐 Geometry Analysis"]
 )
 
 # ---------------------------------------------------------------------------
@@ -686,3 +687,237 @@ with tab_inject:
             mime="application/vnd.google-earth.kmz",
             use_container_width=True,
         )
+
+# ---------------------------------------------------------------------------
+# Tab 6: Geometry Analysis
+# ---------------------------------------------------------------------------
+
+with tab_geometry:
+    st.header("Project Geometry Analysis")
+    st.markdown(
+        """
+        Analyze linear geometries (ducts, cables) and generate project-wide 
+        aggregation of lengths by type.
+        """
+    )
+    
+    # Check if we have features already loaded
+    if 'geometry_features' not in st.session_state:
+        st.session_state.geometry_features = None
+        st.session_state.geometry_summary = None
+    
+    # Load features if not already loaded
+    if st.session_state.geometry_features is None:
+        with st.spinner("Loading features for geometry analysis..."):
+            try:
+                features = parse_features_multi(file_data)
+                st.session_state.geometry_features = features
+            except Exception as exc:
+                st.error(f"Failed to load features: {exc}")
+                st.stop()
+    
+    features = st.session_state.geometry_features
+    
+    if not features:
+        st.warning("No features found for geometry analysis.")
+        st.stop()
+    
+    # Perform analysis
+    if st.button("🔍 Analyze Geometry", type="primary", use_container_width=True):
+        with st.spinner("Analyzing geometry..."):
+            try:
+                from kml2report.geometry_analyzer import (
+                    aggregate_project_footage,
+                    detect_linear_runs,
+                    validate_lengths,
+                    generate_summary_report
+                )
+                
+                # Get project summary
+                summary = aggregate_project_footage(features)
+                st.session_state.geometry_summary = summary
+                
+                # Detect linear runs
+                runs = detect_linear_runs(features)
+                
+                # Validate lengths
+                validation = validate_lengths(features)
+                
+                # Store results
+                st.session_state.geometry_runs = runs
+                st.session_state.geometry_validation = validation
+                
+            except Exception as exc:
+                st.error(f"Analysis failed: {exc}")
+                st.stop()
+    
+    # Display results
+    if st.session_state.geometry_summary:
+        summary = st.session_state.geometry_summary
+        
+        # Project metrics
+        st.subheader("Project Overview")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Total Features", f"{len(features):,}")
+        m2.metric("Linear Segments", f"{summary.segment_count:,}")
+        m3.metric("Total Length", f"{summary.total_length:,.2f} ft")
+        
+        # Detailed breakdown
+        st.subheader("Length Breakdown")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**Single Duct Runs**")
+            if summary.single_duct_lengths:
+                for size, length in sorted(summary.single_duct_lengths.items()):
+                    st.write(f"- {size}: {length:,.2f} ft")
+                total_single = sum(summary.single_duct_lengths.values())
+                st.write(f"**Total: {total_single:,.2f} ft**")
+            else:
+                st.write("No single duct runs found")
+            
+            st.write("")
+            st.write("**Multi-Duct Packages**")
+            if summary.multi_duct_lengths:
+                for config, length in sorted(summary.multi_duct_lengths.items()):
+                    st.write(f"- {config}: {length:,.2f} ft")
+                total_multi = sum(summary.multi_duct_lengths.values())
+                st.write(f"**Total: {total_multi:,.2f} ft**")
+            else:
+                st.write("No multi-duct packages found")
+        
+        with col2:
+            st.write("**Aerial Construction**")
+            if summary.aerial_lengths:
+                for wire_type, length in sorted(summary.aerial_lengths.items()):
+                    st.write(f"- {wire_type}: {length:,.2f} ft")
+                total_aerial = sum(summary.aerial_lengths.values())
+                st.write(f"**Total: {total_aerial:,.2f} ft**")
+            else:
+                st.write("No aerial construction found")
+            
+            st.write("")
+            st.write("**Other Categories**")
+            if summary.other_lengths:
+                for category, length in sorted(summary.other_lengths.items()):
+                    st.write(f"- {category}: {length:,.2f} ft")
+            else:
+                st.write("No other categories found")
+        
+        # Linear runs
+        if 'geometry_runs' in st.session_state and st.session_state.geometry_runs:
+            st.subheader("Connected Linear Runs")
+            runs = st.session_state.geometry_runs[:10]  # Show first 10
+            
+            for i, run in enumerate(runs):
+                with st.expander(f"Run {i+1}: {run.total_length:,.2f} ft - {', '.join(run.duct_sizes)}"):
+                    st.write(f"Segments: {len(run.features)}")
+                    if run.start_coord and run.end_coord:
+                        st.write(f"Start: {run.start_coord[1]:.6f}°N, {run.start_coord[0]:.6f}°W")
+                        st.write(f"End: {run.end_coord[1]:.6f}°N, {run.end_coord[0]:.6f}°W")
+        
+        # Validation results
+        if 'geometry_validation' in st.session_state and st.session_state.geometry_validation:
+            st.subheader("Length Validation")
+            validation = st.session_state.geometry_validation
+            
+            # Show validation summary
+            valid_count = sum(1 for v in validation if v['difference_pct'] < 5)
+            st.write(f"Features with <5% difference: {valid_count}/{len(validation)}")
+            
+            if st.checkbox("Show validation details"):
+                import pandas as pd
+                df = pd.DataFrame(validation)
+                st.dataframe(df, use_container_width=True)
+        
+        # Export options
+        st.subheader("Export Results")
+        
+        # Import here to ensure it's available
+        from kml2report.geometry_analyzer import generate_summary_report
+        
+        # Generate summary report
+        report_text = generate_summary_report(summary)
+        st.download_button(
+            "📄 Download Summary Report",
+            data=report_text,
+            file_name=f"{stem}_geometry_summary.txt",
+            mime="text/plain",
+            use_container_width=True,
+        )
+        
+        # Export Excel with clickable hyperlinks
+        if st.checkbox("Include detailed Excel export with map links"):
+            excel_data = []
+            for feature in features:
+                if feature.geometry and feature.geometry.geometry_type == 'LineString':
+                    from kml2report.geometry_analyzer import extract_duct_info, parse_description_html
+                    duct_info = extract_duct_info(feature)
+                    attrs = parse_description_html(feature.raw_description)
+                    
+                    row = {
+                        'feature_id': feature.placemark_id,
+                        'name': feature.name,
+                        'layer': feature.layer,
+                        'duct_size': duct_info.duct_size,
+                        'package_type': attrs.get('Duct_Package', 'single'),
+                        'duct_count': attrs.get('Duct_Count', '1'),
+                        'length_ft': duct_info.length,
+                    }
+                    
+                    if feature.geometry.coordinates:
+                        start_lat = feature.geometry.coordinates[0][1]
+                        start_lon = feature.geometry.coordinates[0][0]
+                        end_lat = feature.geometry.coordinates[-1][1]
+                        end_lon = feature.geometry.coordinates[-1][0]
+                        
+                        row['start_lat'] = start_lat
+                        row['start_lon'] = start_lon
+                        row['end_lat'] = end_lat
+                        row['end_lon'] = end_lon
+                        
+                        # Store URLs for Excel hyperlinks
+                        row['start_map_url'] = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
+                        row['end_map_url'] = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
+                    
+                    excel_data.append(row)
+            
+            if excel_data:
+                import pandas as pd
+                from io import BytesIO
+                
+                df = pd.DataFrame(excel_data)
+                
+                # Create Excel file with hyperlinks
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    # Write data without URL columns first
+                    df_display = df.drop(columns=['start_map_url', 'end_map_url'], errors='ignore')
+                    df_display.to_excel(writer, sheet_name='Geometry Data', index=False)
+                    
+                    # Get workbook and worksheet
+                    workbook = writer.book
+                    worksheet = writer.sheets['Geometry Data']
+                    
+                    # Add hyperlink columns
+                    if 'start_map_url' in df.columns:
+                        col_idx = len(df_display.columns)
+                        worksheet.write(0, col_idx, 'Start Map Link')
+                        worksheet.write(0, col_idx + 1, 'End Map Link')
+                        
+                        for idx, row in df.iterrows():
+                            if pd.notna(row.get('start_map_url')):
+                                worksheet.write_url(idx + 1, col_idx, row['start_map_url'], string='View Start')
+                            if pd.notna(row.get('end_map_url')):
+                                worksheet.write_url(idx + 1, col_idx + 1, row['end_map_url'], string='View End')
+                
+                excel_bytes = output.getvalue()
+                
+                st.download_button(
+                    "📊 Download Excel with Clickable Links",
+                    data=excel_bytes,
+                    file_name=f"{stem}_geometry_data.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )

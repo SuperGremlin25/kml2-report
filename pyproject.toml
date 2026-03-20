@@ -30,6 +30,13 @@ llm-openai = ["openai>=1.0"]
 llm-anthropic = ["anthropic>=0.18"]
 llm-ollama = ["ollama>=0.1"]
 llm-huggingface = ["huggingface_hub>=0.20"]
+geometry = [
+    "geopandas>=0.14.0",
+    "shapely>=2.0.0",
+    "pyproj>=3.6.0",
+    "geopy>=2.4.0",
+    "beautifulsoup4>=4.11.1",
+]
 dev = [
     "pytest>=7.4",
 ]
