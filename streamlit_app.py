@@ -5,6 +5,7 @@ field-notes summary (optionally filtered by town) -> download as
 Markdown or Word (.docx).
 
 Deploy to Hugging Face Spaces with sdk: streamlit.
+Version: 2.0 - Multi-duct package analysis with Excel export
 """
 
 from __future__ import annotations
