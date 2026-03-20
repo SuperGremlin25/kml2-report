@@ -814,6 +814,9 @@ with tab_geometry:
         # Export options
         st.subheader("Export Results")
         
+        # Import here to ensure it's available
+        from kml2report.geometry_analyzer import generate_summary_report
+        
         # Generate summary report
         report_text = generate_summary_report(summary)
         st.download_button(
