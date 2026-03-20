@@ -41,7 +41,11 @@ class LinearRun:
     def add_feature(self, feature: Feature) -> None:
         """Add a feature to this run."""
         self.features.append(feature)
-        self.duct_sizes.append(feature.name)
+        
+        # Get the parsed duct size (handles multi-duct packages)
+        attrs = parse_description_html(feature.raw_description)
+        duct_size = attrs.get('Duct_Size', feature.name)
+        self.duct_sizes.append(duct_size)
         
         # Update start/end coordinates
         if feature.geometry and feature.geometry.coordinates:

@@ -847,9 +847,9 @@ with tab_geometry:
             use_container_width=True,
         )
         
-        # Export CSV
-        if st.checkbox("Include detailed CSV export"):
-            csv_data = []
+        # Export Excel with clickable hyperlinks
+        if st.checkbox("Include detailed Excel export with map links"):
+            excel_data = []
             for feature in features:
                 if feature.geometry and feature.geometry.geometry_type == 'LineString':
                     from kml2report.geometry_analyzer import extract_duct_info, parse_description_html
@@ -877,24 +877,47 @@ with tab_geometry:
                         row['end_lat'] = end_lat
                         row['end_lon'] = end_lon
                         
-                        # Create Excel HYPERLINK formulas for clickable links
-                        start_url = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
-                        end_url = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
-                        
-                        row['start_map_link'] = f'=HYPERLINK("{start_url}","View Start")'
-                        row['end_map_link'] = f'=HYPERLINK("{end_url}","View End")'
+                        # Store URLs for Excel hyperlinks
+                        row['start_map_url'] = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
+                        row['end_map_url'] = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
                     
-                    csv_data.append(row)
+                    excel_data.append(row)
             
-            if csv_data:
+            if excel_data:
                 import pandas as pd
-                df = pd.DataFrame(csv_data)
-                csv = df.to_csv(index=False)
+                from io import BytesIO
+                
+                df = pd.DataFrame(excel_data)
+                
+                # Create Excel file with hyperlinks
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    # Write data without URL columns first
+                    df_display = df.drop(columns=['start_map_url', 'end_map_url'], errors='ignore')
+                    df_display.to_excel(writer, sheet_name='Geometry Data', index=False)
+                    
+                    # Get workbook and worksheet
+                    workbook = writer.book
+                    worksheet = writer.sheets['Geometry Data']
+                    
+                    # Add hyperlink columns
+                    if 'start_map_url' in df.columns:
+                        col_idx = len(df_display.columns)
+                        worksheet.write(0, col_idx, 'Start Map Link')
+                        worksheet.write(0, col_idx + 1, 'End Map Link')
+                        
+                        for idx, row in df.iterrows():
+                            if pd.notna(row.get('start_map_url')):
+                                worksheet.write_url(idx + 1, col_idx, row['start_map_url'], string='View Start')
+                            if pd.notna(row.get('end_map_url')):
+                                worksheet.write_url(idx + 1, col_idx + 1, row['end_map_url'], string='View End')
+                
+                excel_bytes = output.getvalue()
                 
                 st.download_button(
-                    "📊 Download CSV",
-                    data=csv,
-                    file_name=f"{stem}_geometry_data.csv",
-                    mime="text/csv",
+                    "📊 Download Excel with Clickable Links",
+                    data=excel_bytes,
+                    file_name=f"{stem}_geometry_data.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True,
                 )
