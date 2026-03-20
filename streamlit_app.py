@@ -719,6 +719,9 @@ with tab_geometry:
     
     features = st.session_state.geometry_features
     
+    # Get filename stem for exports
+    export_stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
+    
     if not features:
         st.warning("No features found for geometry analysis.")
         st.stop()
@@ -843,7 +846,7 @@ with tab_geometry:
         st.download_button(
             "📄 Download Summary Report",
             data=report_text,
-            file_name=f"{stem}_geometry_summary.txt",
+            file_name=f"{export_stem}_geometry_summary.txt",
             mime="text/plain",
             use_container_width=True,
         )
@@ -918,7 +921,7 @@ with tab_geometry:
                 st.download_button(
                     "📊 Download Excel with Clickable Links",
                     data=excel_bytes,
-                    file_name=f"{stem}_geometry_data.xlsx",
+                    file_name=f"{export_stem}_geometry_data.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True,
                 )
