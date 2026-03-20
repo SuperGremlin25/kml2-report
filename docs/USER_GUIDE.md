@@ -44,6 +44,7 @@ This is a **professional KML/KMZ analysis tool** for construction and field surv
 ## 🎨 **User Interface**
 
 ### **Sidebar Controls**
+
 - File upload (multiple KML/KMZ supported)
 - Town configuration filtering
 - Settings and options
@@ -72,6 +73,7 @@ This is a **professional KML/KMZ analysis tool** for construction and field surv
 ## 🏗️ **Use Cases**
 
 ### **Fiber Construction Teams**
+
 - Calculate total duct footage by size
 - Generate material lists for bidding
 - Track aerial vs underground construction
@@ -117,6 +119,7 @@ The app is designed to be intuitive - just upload your files and follow the tabs
 ## 📝 **Step-by-Step Tutorial**
 
 ### **Step 1: Upload Your Files**
+
 1. Use the sidebar file uploader
 2. Select one or more KML/KMZ files
 3. Wait for parsing to complete
@@ -152,6 +155,7 @@ The app is designed to be intuitive - just upload your files and follow the tabs
 ## 🆘 **Troubleshooting**
 
 ### **Common Issues**
+
 - **Large files**: May take time to process, be patient
 - **Geocoding**: First run may be slow, results cached after
 - **LLM reports**: Requires Hugging Face API token
@@ -168,6 +172,7 @@ The app is designed to be intuitive - just upload your files and follow the tabs
 ## 📞 **Support**
 
 For issues or questions:
+
 - Check the app logs in Hugging Face Spaces
 - Review this user guide
 - Test with smaller files first

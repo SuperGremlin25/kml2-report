@@ -844,10 +844,19 @@ with tab_geometry:
                     }
                     
                     if feature.geometry.coordinates:
-                        row['start_lon'] = feature.geometry.coordinates[0][0]
-                        row['start_lat'] = feature.geometry.coordinates[0][1]
-                        row['end_lon'] = feature.geometry.coordinates[-1][0]
-                        row['end_lat'] = feature.geometry.coordinates[-1][1]
+                        start_lat = feature.geometry.coordinates[0][1]
+                        start_lon = feature.geometry.coordinates[0][0]
+                        end_lat = feature.geometry.coordinates[-1][1]
+                        end_lon = feature.geometry.coordinates[-1][0]
+                        
+                        row['start_lat'] = start_lat
+                        row['start_lon'] = start_lon
+                        row['end_lat'] = end_lat
+                        row['end_lon'] = end_lon
+                        
+                        # Add OpenStreetMap hyperlinks
+                        row['start_map_link'] = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
+                        row['end_map_link'] = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
                     
                     csv_data.append(row)
             
