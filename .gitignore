@@ -9,7 +9,6 @@ build/
 .env.*
 .geocache.json
 output/
-docs/
 .pytest_cache/
 *.tmp
 *.bak
