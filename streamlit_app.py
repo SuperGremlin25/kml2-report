@@ -877,9 +877,12 @@ with tab_geometry:
                         row['end_lat'] = end_lat
                         row['end_lon'] = end_lon
                         
-                        # Add OpenStreetMap hyperlinks
-                        row['start_map_link'] = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
-                        row['end_map_link'] = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
+                        # Create Excel HYPERLINK formulas for clickable links
+                        start_url = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
+                        end_url = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
+                        
+                        row['start_map_link'] = f'=HYPERLINK("{start_url}","View Start")'
+                        row['end_map_link'] = f'=HYPERLINK("{end_url}","View End")'
                     
                     csv_data.append(row)
             
