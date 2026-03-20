@@ -776,8 +776,28 @@ with tab_geometry:
                 st.write(f"**Total: {total_single:,.2f} ft**")
             else:
                 st.write("No single duct runs found")
+            
+            st.write("")
+            st.write("**Multi-Duct Packages**")
+            if summary.multi_duct_lengths:
+                for config, length in sorted(summary.multi_duct_lengths.items()):
+                    st.write(f"- {config}: {length:,.2f} ft")
+                total_multi = sum(summary.multi_duct_lengths.values())
+                st.write(f"**Total: {total_multi:,.2f} ft**")
+            else:
+                st.write("No multi-duct packages found")
         
         with col2:
+            st.write("**Aerial Construction**")
+            if summary.aerial_lengths:
+                for wire_type, length in sorted(summary.aerial_lengths.items()):
+                    st.write(f"- {wire_type}: {length:,.2f} ft")
+                total_aerial = sum(summary.aerial_lengths.values())
+                st.write(f"**Total: {total_aerial:,.2f} ft**")
+            else:
+                st.write("No aerial construction found")
+            
+            st.write("")
             st.write("**Other Categories**")
             if summary.other_lengths:
                 for category, length in sorted(summary.other_lengths.items()):
@@ -832,14 +852,17 @@ with tab_geometry:
             csv_data = []
             for feature in features:
                 if feature.geometry and feature.geometry.geometry_type == 'LineString':
-                    from kml2report.geometry_analyzer import extract_duct_info
+                    from kml2report.geometry_analyzer import extract_duct_info, parse_description_html
                     duct_info = extract_duct_info(feature)
+                    attrs = parse_description_html(feature.raw_description)
                     
                     row = {
                         'feature_id': feature.placemark_id,
                         'name': feature.name,
                         'layer': feature.layer,
                         'duct_size': duct_info.duct_size,
+                        'package_type': attrs.get('Duct_Package', 'single'),
+                        'duct_count': attrs.get('Duct_Count', '1'),
                         'length_ft': duct_info.length,
                     }
                     

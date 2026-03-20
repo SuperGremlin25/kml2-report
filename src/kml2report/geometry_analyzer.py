@@ -107,6 +107,7 @@ def parse_description_html(description: str) -> Dict[str, str]:
         
     Returns:
         Dictionary of attribute key-value pairs
+        Note: If multiple Duct_Size values exist, they are concatenated with '+'
     """
     if not description:
         return {}
@@ -116,6 +117,7 @@ def parse_description_html(description: str) -> Dict[str, str]:
     
     # Find all table rows with key-value pairs
     attributes = {}
+    duct_sizes = []
     rows = soup.find_all('tr')
     
     for row in rows:
@@ -123,7 +125,24 @@ def parse_description_html(description: str) -> Dict[str, str]:
         if len(cells) >= 2:
             key = cells[0].get_text(strip=True)
             value = cells[1].get_text(strip=True)
-            attributes[key] = value
+            
+            # Special handling for multiple Duct_Size entries
+            if key == 'Duct_Size':
+                duct_sizes.append(value)
+            else:
+                attributes[key] = value
+    
+    # Combine multiple duct sizes into a package description
+    if duct_sizes:
+        if len(duct_sizes) == 1:
+            attributes['Duct_Size'] = duct_sizes[0]
+            attributes['Duct_Package'] = 'single'
+        else:
+            # Multi-duct package: sort and join
+            sorted_ducts = sorted(duct_sizes, reverse=True)
+            attributes['Duct_Size'] = ' + '.join(sorted_ducts)
+            attributes['Duct_Package'] = 'multi'
+            attributes['Duct_Count'] = str(len(duct_sizes))
     
     return attributes
 
@@ -241,20 +260,25 @@ def aggregate_project_footage(features: List[Feature]) -> ProjectSummary:
         # Extract duct info from feature
         duct_info = extract_duct_info(feature)
         
-        # Based on sample KMZ, all appear to be single duct runs
-        # The duct size is in the name field
+        # Parse attributes to check for multi-duct package
+        attrs = parse_description_html(feature.raw_description)
+        duct_package_type = attrs.get('Duct_Package', 'single')
         duct_size = duct_info.duct_size
         length = duct_info.length
         
-        # Add to appropriate category
-        if duct_size in ['2"', '3"', '4"', '2 inch', '3 inch', '4 inch']:
-            # Standardize duct size format
+        # Categorize based on package type
+        if duct_package_type == 'multi':
+            # Multi-duct package (e.g., "3\" + 2\"")
+            summary.add_multi_duct(duct_size, length)
+        elif duct_size in ['2"', '3"', '4"', '2 inch', '3 inch', '4 inch']:
+            # Single duct run
             standardized = duct_size.replace(' inch', '"')
             summary.add_single_duct(standardized, length)
         elif 'messenger' in duct_size.lower() or 'aerial' in duct_size.lower():
+            # Aerial construction
             summary.add_aerial(duct_size, length)
         else:
-            # Handle other sizes or categories
+            # Other categories
             summary.add_other(duct_size, length)
     
     return summary
@@ -412,12 +436,14 @@ def generate_summary_report(summary: ProjectSummary) -> str:
         lines.append(f"Total Single Duct: {total_single:,.2f} ft")
         lines.append("")
     
-    # Multi-duct runs
+    # Multi-duct packages
     if summary.multi_duct_lengths:
         lines.append("Multi-Duct Packages:")
         lines.append("-" * 20)
         for config, length in sorted(summary.multi_duct_lengths.items()):
             lines.append(f"- {config}: {length:,.2f} ft")
+        total_multi = sum(summary.multi_duct_lengths.values())
+        lines.append(f"Total Multi-Duct: {total_multi:,.2f} ft")
         lines.append("")
     
     # Aerial runs
@@ -426,6 +452,8 @@ def generate_summary_report(summary: ProjectSummary) -> str:
         lines.append("-" * 20)
         for wire_type, length in sorted(summary.aerial_lengths.items()):
             lines.append(f"- {wire_type}: {length:,.2f} ft")
+        total_aerial = sum(summary.aerial_lengths.values())
+        lines.append(f"Total Aerial: {total_aerial:,.2f} ft")
         lines.append("")
     
     # Other
