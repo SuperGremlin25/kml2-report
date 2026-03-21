@@ -5,6 +5,7 @@ field-notes summary (optionally filtered by town) -> download as
 Markdown or Word (.docx).
 
 Deploy to Hugging Face Spaces with sdk: streamlit.
+Version: 2.0 - Multi-duct package analysis with Excel export
 """
 
 from __future__ import annotations
@@ -107,11 +108,8 @@ if town_names:
     if town_choice != "All towns":
         town_filter = town_choice
 
-inject_nomenclature = st.sidebar.checkbox(
-    "Add SBEC/EXO nomenclature note",
-    value=True,
-    help="Inject the utility nomenclature note into the generated report.",
-)
+# Removed SBEC/EXO nomenclature checkbox - not needed for general use
+inject_nomenclature = False
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
@@ -718,6 +716,9 @@ with tab_geometry:
     
     features = st.session_state.geometry_features
     
+    # Get filename stem for exports
+    export_stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
+    
     if not features:
         st.warning("No features found for geometry analysis.")
         st.stop()
@@ -842,7 +843,7 @@ with tab_geometry:
         st.download_button(
             "📄 Download Summary Report",
             data=report_text,
-            file_name=f"{stem}_geometry_summary.txt",
+            file_name=f"{export_stem}_geometry_summary.txt",
             mime="text/plain",
             use_container_width=True,
         )
@@ -877,9 +878,9 @@ with tab_geometry:
                         row['end_lat'] = end_lat
                         row['end_lon'] = end_lon
                         
-                        # Store URLs for Excel hyperlinks
-                        row['start_map_url'] = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
-                        row['end_map_url'] = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
+                        # Store URLs for Excel hyperlinks - using Google Maps to avoid rate limiting
+                        row['start_map_url'] = f'https://www.google.com/maps?q={start_lat},{start_lon}&z=18'
+                        row['end_map_url'] = f'https://www.google.com/maps?q={end_lat},{end_lon}&z=18'
                     
                     excel_data.append(row)
             
@@ -917,7 +918,7 @@ with tab_geometry:
                 st.download_button(
                     "📊 Download Excel with Clickable Links",
                     data=excel_bytes,
-                    file_name=f"{stem}_geometry_data.xlsx",
+                    file_name=f"{export_stem}_geometry_data.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True,
                 )
