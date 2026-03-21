@@ -20,6 +20,41 @@ except ImportError:
 from kml2report.models import Feature, Geometry
 
 
+def parse_comma_separated_ducts(value: str) -> List[str]:
+    """Parse comma-separated duct sizes from new KML format.
+    
+    Handles formats like:
+        "2\"" → ["2\""]
+        "4\", 4\"" → ["4\"", "4\""]
+        "2\", 3\"" → ["2\"", "3\""]
+    
+    Args:
+        value: Comma-separated duct size string
+        
+    Returns:
+        List of individual duct sizes
+    """
+    if not value:
+        return []
+    
+    # Split by comma and clean up each part
+    parts = [part.strip() for part in value.split(',')]
+    
+    # Normalize quotes - ensure each part ends with "
+    normalized = []
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        # Remove any existing quotes and add back standardized ones
+        part = part.replace('"', '').replace("'", '').strip()
+        if part and not part.endswith('"'):
+            part = part + '"'
+        normalized.append(part)
+    
+    return normalized
+
+
 @dataclass
 class DuctInfo:
     """Information about a duct segment."""
@@ -106,12 +141,16 @@ class ProjectSummary:
 def parse_description_html(description: str) -> Dict[str, str]:
     """Extract attributes from HTML description table.
     
+    Supports two KML format variations:
+    1. Old format: Multiple 'Duct_Size' entries for multi-duct packages
+    2. New format: Single 'Ducts' entry with comma-separated values
+    
     Args:
         description: HTML content from KML description field
         
     Returns:
         Dictionary of attribute key-value pairs
-        Note: If multiple Duct_Size values exist, they are concatenated with '+'
+        Note: Duct sizes are normalized to 'Duct_Size' key regardless of input format
     """
     if not description:
         return {}
@@ -122,6 +161,7 @@ def parse_description_html(description: str) -> Dict[str, str]:
     # Find all table rows with key-value pairs
     attributes = {}
     duct_sizes = []
+    has_ducts_key = False
     rows = soup.find_all('tr')
     
     for row in rows:
@@ -130,17 +170,27 @@ def parse_description_html(description: str) -> Dict[str, str]:
             key = cells[0].get_text(strip=True)
             value = cells[1].get_text(strip=True)
             
-            # Special handling for multiple Duct_Size entries
+            # Handle old format: multiple Duct_Size entries
             if key == 'Duct_Size':
                 duct_sizes.append(value)
+            # Handle new format: single Ducts entry with comma-separated values
+            elif key == 'Ducts':
+                has_ducts_key = True
+                parsed_ducts = parse_comma_separated_ducts(value)
+                duct_sizes.extend(parsed_ducts)
             else:
                 attributes[key] = value
     
-    # Combine multiple duct sizes into a package description
+    # Normalize length attribute (support both 'Length' and 'New_Length')
+    if 'Length' in attributes and 'New_Length' not in attributes:
+        attributes['New_Length'] = attributes['Length']
+    
+    # Combine duct sizes into a package description
     if duct_sizes:
         if len(duct_sizes) == 1:
             attributes['Duct_Size'] = duct_sizes[0]
             attributes['Duct_Package'] = 'single'
+            attributes['Duct_Count'] = '1'
         else:
             # Multi-duct package: sort and join
             sorted_ducts = sorted(duct_sizes, reverse=True)
@@ -154,18 +204,24 @@ def parse_description_html(description: str) -> Dict[str, str]:
 def extract_duct_info(feature: Feature) -> DuctInfo:
     """Extract duct information from a feature.
     
+    Supports both old and new KML formats:
+    - Old format: Uses 'New_Length' attribute
+    - New format: Uses 'Length' attribute (normalized to 'New_Length' by parser)
+    
     Args:
         feature: KML feature object
         
     Returns:
         DuctInfo object with duct size and length
     """
-    # Get duct size from name
-    duct_size = feature.name or "Unknown"
-    
-    # Parse HTML description for length
+    # Parse HTML description for attributes
     attrs = parse_description_html(feature.raw_description)
-    length_str = attrs.get('New_Length', '0')
+    
+    # Get duct size from parsed attributes (handles both formats)
+    duct_size = attrs.get('Duct_Size', feature.name or "Unknown")
+    
+    # Get length - try both 'New_Length' (old format) and 'Length' (new format)
+    length_str = attrs.get('New_Length') or attrs.get('Length', '0')
     
     # Clean and convert length
     try:
