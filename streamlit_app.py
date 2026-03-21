@@ -878,9 +878,9 @@ with tab_geometry:
                         row['end_lat'] = end_lat
                         row['end_lon'] = end_lon
                         
-                        # Store URLs for Excel hyperlinks
-                        row['start_map_url'] = f'https://www.openstreetmap.org/?mlat={start_lat}&mlon={start_lon}#map=18/{start_lat}/{start_lon}'
-                        row['end_map_url'] = f'https://www.openstreetmap.org/?mlat={end_lat}&mlon={end_lon}#map=18/{end_lat}/{end_lon}'
+                        # Store URLs for Excel hyperlinks - using Google Maps to avoid rate limiting
+                        row['start_map_url'] = f'https://www.google.com/maps?q={start_lat},{start_lon}&z=18'
+                        row['end_map_url'] = f'https://www.google.com/maps?q={end_lat},{end_lon}&z=18'
                     
                     excel_data.append(row)
             
