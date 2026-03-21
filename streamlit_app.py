@@ -108,11 +108,8 @@ if town_names:
     if town_choice != "All towns":
         town_filter = town_choice
 
-inject_nomenclature = st.sidebar.checkbox(
-    "Add SBEC/EXO nomenclature note",
-    value=True,
-    help="Inject the utility nomenclature note into the generated report.",
-)
+# Removed SBEC/EXO nomenclature checkbox - not needed for general use
+inject_nomenclature = False
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
