@@ -38,6 +38,9 @@ def parse_file(path: Path) -> list[Feature]:
     raise ValueError(f"Unsupported file type: {suffix}")
 
 
+_PARSER = etree.XMLParser(recover=True, resolve_entities=False)
+
+
 def _parse_kmz(path: Path) -> list[Feature]:
     """Unzip a KMZ and parse the main KML inside it."""
     features: list[Feature] = []
@@ -47,14 +50,14 @@ def _parse_kmz(path: Path) -> list[Feature]:
             raise ValueError(f"No .kml file found inside {path}")
         for kml_name in kml_names:
             with zf.open(kml_name) as kml_file:
-                tree = etree.parse(kml_file)
+                tree = etree.parse(kml_file, _PARSER)
                 features.extend(_extract_features(tree, source_file=str(path)))
     return features
 
 
 def _parse_kml(path: Path) -> list[Feature]:
     """Parse a .kml file from disk."""
-    tree = etree.parse(str(path))
+    tree = etree.parse(str(path), _PARSER)
     return list(_extract_features(tree, source_file=str(path)))
 
 

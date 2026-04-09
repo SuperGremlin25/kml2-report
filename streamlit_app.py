@@ -806,6 +806,35 @@ with tab_geometry:
             else:
                 st.write("No other categories found")
         
+        # Point features section
+        if summary.point_features and summary.point_features.total_count > 0:
+            st.subheader("Point Features")
+            
+            pcol1, pcol2 = st.columns(2)
+            
+            with pcol1:
+                st.metric("Total Point Features", f"{summary.point_features.total_count:,}")
+                
+                st.write("**Feature Counts by Type**")
+                for feature_type, count in sorted(summary.point_features.feature_counts.items()):
+                    st.write(f"- {feature_type}: {count}")
+            
+            with pcol2:
+                if st.checkbox("Show point feature details"):
+                    st.write("**Feature Details**")
+                    import pandas as pd
+                    point_data = []
+                    for pf in summary.point_features.feature_details:
+                        point_data.append({
+                            'ID': pf.feature_id,
+                            'Type': pf.feature_type,
+                            'Subtype': pf.subtype,
+                            'Latitude': f"{pf.latitude:.6f}" if pf.latitude else "",
+                            'Longitude': f"{pf.longitude:.6f}" if pf.longitude else ""
+                        })
+                    df_points = pd.DataFrame(point_data)
+                    st.dataframe(df_points, use_container_width=True)
+        
         # Linear runs
         if 'geometry_runs' in st.session_state and st.session_state.geometry_runs:
             st.subheader("Connected Linear Runs")
@@ -884,34 +913,67 @@ with tab_geometry:
                     
                     excel_data.append(row)
             
-            if excel_data:
+            # Add point features to Excel export if present
+            point_data = []
+            if summary.point_features and summary.point_features.total_count > 0:
+                for pf in summary.point_features.feature_details:
+                    point_row = {
+                        'feature_id': pf.feature_id,
+                        'type': pf.feature_type,
+                        'subtype': pf.subtype,
+                        'latitude': pf.latitude,
+                        'longitude': pf.longitude,
+                    }
+                    # Add map URL for point features
+                    if pf.latitude and pf.longitude:
+                        point_row['map_url'] = f'https://www.google.com/maps?q={pf.latitude},{pf.longitude}&z=18'
+                    point_data.append(point_row)
+            
+            if excel_data or point_data:
                 import pandas as pd
                 from io import BytesIO
-                
-                df = pd.DataFrame(excel_data)
                 
                 # Create Excel file with hyperlinks
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                    # Write data without URL columns first
-                    df_display = df.drop(columns=['start_map_url', 'end_map_url'], errors='ignore')
-                    df_display.to_excel(writer, sheet_name='Geometry Data', index=False)
+                    # Write linear features sheet
+                    if excel_data:
+                        df = pd.DataFrame(excel_data)
+                        df_display = df.drop(columns=['start_map_url', 'end_map_url'], errors='ignore')
+                        df_display.to_excel(writer, sheet_name='Linear Features', index=False)
                     
-                    # Get workbook and worksheet
-                    workbook = writer.book
-                    worksheet = writer.sheets['Geometry Data']
+                        # Get workbook and add hyperlinks to linear features
+                        workbook = writer.book
+                        if excel_data:
+                            worksheet = writer.sheets['Linear Features']
+                            
+                            # Add hyperlink columns for linear features
+                            if 'start_map_url' in df.columns:
+                                col_idx = len(df_display.columns)
+                                worksheet.write(0, col_idx, 'Start Map Link')
+                                worksheet.write(0, col_idx + 1, 'End Map Link')
+                                
+                                for idx, row in df.iterrows():
+                                    if pd.notna(row.get('start_map_url')):
+                                        worksheet.write_url(idx + 1, col_idx, row['start_map_url'], string='View Start')
+                                    if pd.notna(row.get('end_map_url')):
+                                        worksheet.write_url(idx + 1, col_idx + 1, row['end_map_url'], string='View End')
                     
-                    # Add hyperlink columns
-                    if 'start_map_url' in df.columns:
-                        col_idx = len(df_display.columns)
-                        worksheet.write(0, col_idx, 'Start Map Link')
-                        worksheet.write(0, col_idx + 1, 'End Map Link')
+                    # Write point features sheet
+                    if point_data:
+                        df_points = pd.DataFrame(point_data)
+                        df_points_display = df_points.drop(columns=['map_url'], errors='ignore')
+                        df_points_display.to_excel(writer, sheet_name='Point Features', index=False)
                         
-                        for idx, row in df.iterrows():
-                            if pd.notna(row.get('start_map_url')):
-                                worksheet.write_url(idx + 1, col_idx, row['start_map_url'], string='View Start')
-                            if pd.notna(row.get('end_map_url')):
-                                worksheet.write_url(idx + 1, col_idx + 1, row['end_map_url'], string='View End')
+                        # Add hyperlinks to point features
+                        worksheet_points = writer.sheets['Point Features']
+                        if 'map_url' in df_points.columns:
+                            col_idx = len(df_points_display.columns)
+                            worksheet_points.write(0, col_idx, 'Map Link')
+                            
+                            for idx, row in df_points.iterrows():
+                                if pd.notna(row.get('map_url')):
+                                    worksheet_points.write_url(idx + 1, col_idx, row['map_url'], string='View Location')
                 
                 excel_bytes = output.getvalue()
                 
