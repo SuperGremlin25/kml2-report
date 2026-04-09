@@ -96,6 +96,26 @@ class LinearRun:
 
 
 @dataclass
+class PointFeatureInfo:
+    """Information about a point feature (pole, HH, cabinet, etc.)."""
+    feature_type: str
+    subtype: str = ""
+    attributes: Dict[str, str] = field(default_factory=dict)
+    geometry: Optional[Geometry] = None
+    feature_id: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+@dataclass
+class PointFeatureSummary:
+    """Summary of point features by type."""
+    feature_counts: Dict[str, int] = field(default_factory=dict)
+    feature_details: List[PointFeatureInfo] = field(default_factory=list)
+    total_count: int = 0
+
+
+@dataclass
 class ProjectSummary:
     """Summary of all duct lengths in a project."""
     single_duct_lengths: Dict[str, float] = field(default_factory=dict)
@@ -104,6 +124,7 @@ class ProjectSummary:
     other_lengths: Dict[str, float] = field(default_factory=dict)
     total_length: float = 0.0
     segment_count: int = 0
+    point_features: Optional[PointFeatureSummary] = None
     
     def add_single_duct(self, duct_size: str, length: float) -> None:
         """Add length to single duct category."""
@@ -341,6 +362,72 @@ def aggregate_project_footage(features: List[Feature]) -> ProjectSummary:
             # Other categories
             summary.add_other(duct_size, length)
     
+    # Add point feature summary if requested
+    point_summary = aggregate_point_features(features)
+    if point_summary.total_count > 0:
+        summary.point_features = point_summary
+    
+    return summary
+
+
+def aggregate_point_features(features: List[Feature]) -> PointFeatureSummary:
+    """Aggregate point features (poles, HHs, cabinets, etc.) by type.
+    
+    Args:
+        features: List of KML features
+        
+    Returns:
+        PointFeatureSummary with counts and details
+    """
+    summary = PointFeatureSummary()
+    
+    for feature in features:
+        if not feature.geometry or feature.geometry.geometry_type != 'Point':
+            continue
+        
+        # Parse attributes from description
+        attrs = parse_description_html(feature.raw_description)
+        
+        # Determine feature type from attributes or name
+        feature_type = (
+            attrs.get('Type') or 
+            attrs.get('Feature_Type') or 
+            attrs.get('Element_Type') or
+            feature.name or 
+            'Unknown'
+        )
+        
+        # Determine subtype if available
+        subtype = (
+            attrs.get('Subtype') or
+            attrs.get('Model') or
+            attrs.get('Size') or
+            ''
+        )
+        
+        # Get coordinates
+        lat = feature.geometry.latitude
+        lon = feature.geometry.longitude
+        
+        # Create point feature info
+        point_info = PointFeatureInfo(
+            feature_type=feature_type,
+            subtype=subtype,
+            attributes=attrs,
+            geometry=feature.geometry,
+            feature_id=feature.placemark_id,
+            latitude=lat,
+            longitude=lon
+        )
+        
+        summary.feature_details.append(point_info)
+        
+        # Count by type
+        if feature_type not in summary.feature_counts:
+            summary.feature_counts[feature_type] = 0
+        summary.feature_counts[feature_type] += 1
+        summary.total_count += 1
+    
     return summary
 
 
@@ -524,10 +611,21 @@ def generate_summary_report(summary: ProjectSummary) -> str:
             lines.append(f"- {category}: {length:,.2f} ft")
         lines.append("")
     
+    # Point features
+    if summary.point_features and summary.point_features.total_count > 0:
+        lines.append("Point Features:")
+        lines.append("-" * 20)
+        for feature_type, count in sorted(summary.point_features.feature_counts.items()):
+            lines.append(f"- {feature_type}: {count}")
+        lines.append(f"Total Point Features: {summary.point_features.total_count}")
+        lines.append("")
+    
     # Project totals
     lines.append("Project Totals:")
     lines.append("-" * 20)
-    lines.append(f"- Total segments: {summary.segment_count}")
-    lines.append(f"- Total length: {summary.total_length:,.2f} ft")
+    lines.append(f"- Total linear segments: {summary.segment_count}")
+    lines.append(f"- Total linear length: {summary.total_length:,.2f} ft")
+    if summary.point_features:
+        lines.append(f"- Total point features: {summary.point_features.total_count}")
     
     return "\n".join(lines)
