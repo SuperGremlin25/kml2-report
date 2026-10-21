@@ -13,13 +13,15 @@ from typing import Callable, Iterable, Optional
 
 import pandas as pd
 from pyproj import CRS, Transformer
-from shapely.geometry import LineString, Point, Polygon, shape, mapping
+from shapely.geometry import GeometryCollection, LineString, Point, Polygon, shape, mapping
 from shapely.geometry.base import BaseGeometry
-from shapely.ops import transform, unary_union
+from shapely.ops import transform
 
+from kml2report.description_parser import parse_description
 from kml2report.models import Feature, M_TO_FT
 
 WGS84 = "EPSG:4326"
+_GROUP_KEY = object()
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +44,11 @@ def to_shapely(feature: Feature) -> Optional[BaseGeometry]:
 
 def feature_attributes(feature: Feature) -> dict[str, str]:
     row = feature.flat_dict(include_raw=False)
+    for key, value in parse_description(feature.raw_description).items():
+        if key not in feature.parsed_attributes and key not in {
+            "geometry_type", "latitude", "longitude", "calc_length_ft", "calc_area_sqft", "calc_area_acres", "wkt",
+        }:
+            row[key] = value
     row.pop("wkt", None)
     return row
 
@@ -84,17 +91,19 @@ def extract_vertices(features: list[Feature]) -> pd.DataFrame:
         if not f.geometry:
             continue
         for part_no, g in enumerate(f.geometry.iter_simple()):
-            cum = 0.0
-            prev = None
-            for vi, (lon, lat, alt) in enumerate(g.coordinates):
-                if prev is not None:
-                    cum += path_length_m([prev, (lon, lat, alt)]) * M_TO_FT
-                prev = (lon, lat, alt)
-                rows.append({
-                    "feature": f.name or f.placemark_id, "layer": f.layer, "geometry_type": g.geometry_type,
-                    "part": part_no, "vertex": vi, "lon": lon, "lat": lat, "elev_m": alt,
-                    "station_ft": round(cum, 2),
-                })
+            rings = [g.coordinates, *g.holes] if g.geometry_type in ("Polygon", "LinearRing") else [g.coordinates]
+            for ring_no, ring in enumerate(rings):
+                cum = 0.0
+                prev = None
+                for vi, (lon, lat, alt) in enumerate(ring):
+                    if prev is not None:
+                        cum += path_length_m([prev, (lon, lat, alt)]) * M_TO_FT
+                    prev = (lon, lat, alt)
+                    rows.append({
+                        "feature": f.name or f.placemark_id, "layer": f.layer, "geometry_type": g.geometry_type,
+                        "part": part_no, "ring": ring_no, "vertex": vi, "lon": lon, "lat": lat, "elev_m": alt,
+                        "station_ft": round(cum, 2),
+                    })
     return pd.DataFrame(rows)
 
 
@@ -111,7 +120,7 @@ def centroid_lonlat(features: list[Feature]) -> Optional[tuple[float, float]]:
     geoms = [g for g in (to_shapely(f) for f in features) if g is not None]
     if not geoms:
         return None
-    c = unary_union(geoms).centroid
+    c = GeometryCollection(geoms).centroid
     return c.x, c.y
 
 
@@ -179,15 +188,16 @@ def group_summary(features: list[Feature], field: str) -> pd.DataFrame:
         attrs = feature_attributes(f)
         g = f.geometry
         rows.append({
-            field: attrs.get(field, "(blank)") or "(blank)",
+            _GROUP_KEY: attrs.get(field, "(blank)") or "(blank)",
             "length_ft": g.length_feet if g else 0.0,
             "area_acres": g.area_acres if g else 0.0,
         })
     if not rows:
         return pd.DataFrame()
-    df = pd.DataFrame(rows).groupby(field).agg(
+    output_field = f"{field}_group" if field in {"count", "length_ft", "area_acres"} else field
+    df = pd.DataFrame(rows).groupby(_GROUP_KEY).agg(
         count=("length_ft", "size"), length_ft=("length_ft", "sum"), area_acres=("area_acres", "sum")
-    ).reset_index().sort_values("count", ascending=False)
+    ).reset_index().rename(columns={_GROUP_KEY: output_field}).sort_values("count", ascending=False)
     df["length_ft"] = df["length_ft"].round(1)
     df["area_acres"] = df["area_acres"].round(3)
     return df
@@ -325,15 +335,21 @@ def run_qa(features: list[Feature], snap_tolerance_ft: float = 3.0, min_length_f
                                   f"Identical geometry to '{seen_geoms[wkt].name}'"))
         else:
             seen_geoms[wkt] = f
-        if g.geometry_type in ("LineString", "Track"):
+        simple_geometries = list(g.iter_simple())
+        line_parts = [part for part in simple_geometries if part.geometry_type in ("LineString", "Track")]
+        if line_parts:
             if g.length_feet < min_length_ft:
                 issues.append(QAIssue("warning", "Near-zero length", label, f.layer, f"{g.length_feet:.2f} ft"))
-            sg = to_shapely(f)
-            if sg is not None and sg.geom_type == "LineString":
-                if not sg.is_simple:
-                    issues.append(QAIssue("warning", "Self-intersecting line", label, f.layer, "Line crosses itself"))
-                if fwd:
-                    lines.append((f, transform(fwd.transform, sg)))
+            for part in line_parts:
+                try:
+                    sg = shape(part.to_geojson())
+                except Exception:
+                    sg = None
+                if sg is not None and sg.geom_type == "LineString":
+                    if not sg.is_simple:
+                        issues.append(QAIssue("warning", "Self-intersecting line", label, f.layer, "Line crosses itself"))
+                    if fwd:
+                        lines.append((f, transform(fwd.transform, sg)))
             # declared vs measured length
             declared = _declared_length(f)
             if declared and g.length_feet:
@@ -341,12 +357,18 @@ def run_qa(features: list[Feature], snap_tolerance_ft: float = 3.0, min_length_f
                 if diff > 10:
                     issues.append(QAIssue("warning", "Length mismatch", label, f.layer,
                                           f"Attribute {declared:,.1f} ft vs measured {g.length_feet:,.1f} ft ({diff:.0f}% off)"))
-        elif g.geometry_type in ("Polygon", "LinearRing"):
-            sg = to_shapely(f)
-            if sg is not None and not sg.is_valid:
-                issues.append(QAIssue("error", "Invalid polygon", label, f.layer, "Polygon is invalid (self-intersection or bad ring)"))
-        if g.geometry_type == "Point" and abs(g.coordinates[0][0]) < 1e-9 and abs(g.coordinates[0][1]) < 1e-9:
-            issues.append(QAIssue("error", "Null island", label, f.layer, "Point is at 0,0"))
+        for part in simple_geometries:
+            if part.geometry_type in ("Polygon", "LinearRing"):
+                try:
+                    sg = shape(part.to_geojson())
+                except Exception:
+                    sg = None
+                if sg is None or not sg.is_valid:
+                    issues.append(QAIssue("error", "Invalid polygon", label, f.layer,
+                                          "Polygon is invalid (self-intersection or bad ring)"))
+            elif part.geometry_type == "Point" and part.coordinates:
+                if abs(part.coordinates[0][0]) < 1e-9 and abs(part.coordinates[0][1]) < 1e-9:
+                    issues.append(QAIssue("error", "Null island", label, f.layer, "Point is at 0,0"))
 
     for (layer, name), n in seen_names.items():
         if name and n > 1:

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import csv
+import hashlib
 import json
 import os
 import re
@@ -335,6 +336,15 @@ file_data: list[tuple[bytes, str]] = [
 ]
 file_names = [f.name for f in uploaded_files]
 stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
+
+# Invalidate cached analyses before any tab renders the current upload.
+_files_sig = tuple((n, len(b), hashlib.sha256(b).hexdigest()) for b, n in file_data)
+if st.session_state.get("geometry_sig") != _files_sig:
+    st.session_state.geometry_sig = _files_sig
+    st.session_state.geometry_features = None
+    st.session_state.geometry_summary = None
+    st.session_state.pop("wb_buffer", None)
+    st.session_state.pop("wb_qa_res", None)
 
 tab_gis, tab_preview, tab_summary, tab_report, tab_download, tab_inject, tab_geometry = st.tabs(
     ["🧭 GIS Workbench", "📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads", "🗺️ KML Injector", "📐 Geometry Analysis"]
@@ -712,15 +722,6 @@ with tab_geometry:
     )
     
     # Check if we have features already loaded
-    # Reset cached analysis whenever a different set of files is uploaded
-    _files_sig = tuple((n, len(b)) for b, n in file_data)
-    if st.session_state.get('geometry_sig') != _files_sig:
-        st.session_state.geometry_sig = _files_sig
-        st.session_state.geometry_features = None
-        st.session_state.geometry_summary = None
-        st.session_state.pop('wb_buffer', None)
-        st.session_state.pop('wb_qa_res', None)
-
     # Load features if not already loaded
     if st.session_state.geometry_features is None:
         with st.spinner("Loading features for geometry analysis..."):

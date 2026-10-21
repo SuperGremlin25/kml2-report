@@ -174,7 +174,7 @@ class Geometry:
             return None
 
         def pt(c: Coord) -> list[float]:
-            return [c[0], c[1], c[2]] if c[2] else [c[0], c[1]]
+            return [c[0], c[1], c[2]]
 
         def closed(cs: list[Coord]) -> list[Coord]:
             return cs if cs and cs[0] == cs[-1] else cs + cs[:1]

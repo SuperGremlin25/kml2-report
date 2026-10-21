@@ -114,7 +114,8 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
             gs = gis.group_summary(vis, field)
             st.dataframe(gs, use_container_width=True)
             if not gs.empty and len(gs) <= 40:
-                st.bar_chart(gs.set_index(field)["count"])
+                group_field = f"{field}_group" if field in {"count", "length_ft", "area_acres"} else field
+                st.bar_chart(gs.set_index(group_field)["count"])
 
     # ------------------------------------------------------------- analysis
     with t_analysis:
@@ -125,6 +126,7 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
             if st.button("Create buffer", key="wb_buf_go"):
                 gj = gis.buffer_features(vis, dist)
                 st.session_state["wb_buffer"] = gj
+                st.rerun()
             if st.session_state.get("wb_buffer"):
                 n = len(st.session_state["wb_buffer"]["features"])
                 st.success(f"{n} buffer polygon(s) shown on the map tab")
@@ -236,6 +238,9 @@ def _render_map(vis: list[Feature], layers: list[str], color_by: str, basemap: s
                                      get_size=13, get_color=[20, 20, 20, 255], get_pixel_offset=[0, -14]))
 
     b = gis.bounds_of(vis)
+    if b is None:
+        st.info("No geometry to map.")
+        return
     lon, lat = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
     span = max(b[2] - b[0], b[3] - b[1], 1e-5)
     import math

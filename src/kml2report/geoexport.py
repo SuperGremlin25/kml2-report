@@ -115,7 +115,8 @@ def to_dxf_bytes(features: list[Feature], dst_epsg: Optional[str] = None, units_
         c = centroid_lonlat(features) or (0.0, 0.0)
         dst_epsg = f"EPSG:{utm_epsg(*c)}"
     t = transformer(WGS84, dst_epsg)
-    scale = 3.280839895 if units_feet and CRS.from_user_input(dst_epsg).axis_info[0].unit_name == "metre" else 1.0
+    unit_to_m = CRS.from_user_input(dst_epsg).axis_info[0].unit_conversion_factor
+    scale = unit_to_m * (3.280839895 if units_feet else 1.0)
 
     def xy(c):
         x, y = t.transform(c[0], c[1])
@@ -141,8 +142,8 @@ def to_dxf_bytes(features: list[Feature], dst_epsg: Optional[str] = None, units_
                 p = xy(g.coordinates[0])
                 msp.add_point(p, dxfattribs={"layer": layer})
                 if label_points and f.name:
-                    msp.add_text(f.name, height=2.0 if units_feet else 0.6,
-                                 dxfattribs={"layer": layer}).set_placement((p[0] + 1.5, p[1] + 1.5))
+                    msp.add_text(f.name, dxfattribs={"layer": layer, "height": 2.0 if units_feet else 0.6}
+                                 ).set_placement((p[0] + 1.5, p[1] + 1.5))
             elif g.geometry_type in ("LineString", "Track"):
                 if len(g.coordinates) >= 2:
                     msp.add_lwpolyline([xy(c) for c in g.coordinates], dxfattribs={"layer": layer})

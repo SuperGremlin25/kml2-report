@@ -257,14 +257,23 @@ def _parse_coord_text(text: Optional[str], warnings: list[str], label: str = "")
     """
     if not text or not text.strip():
         return []
-    cleaned = re.sub(r"\s*,\s*", ",", text.strip())
+    number = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+    cleaned = re.sub(
+        rf"({number})\s*,\s*({number}),\s+(?={number}\s*,\s*{number}(?:\s*,|\s|$))",
+        r"\1,\2 ",
+        text.strip(),
+    )
+    cleaned = re.sub(r"\s*,\s*", ",", cleaned)
     result: list[Coord] = []
     for token in cleaned.split():
-        parts = [p for p in token.split(",") if p != ""]
+        parts = token.rstrip(",").split(",")
         try:
-            nums = [float(p) for p in parts[:3]]
+            nums = [float(p) for p in parts]
         except ValueError:
             warnings.append(f"{label}: skipped unreadable coordinate '{token[:40]}'")
+            continue
+        if len(nums) > 3:
+            warnings.append(f"{label}: skipped ambiguous coordinate '{token[:40]}'")
             continue
         if len(nums) < 2:
             warnings.append(f"{label}: skipped incomplete coordinate '{token[:40]}'")
