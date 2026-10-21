@@ -116,8 +116,9 @@ def test_clip_polyline_exact_fraction_and_altitude():
 
 
 def test_contractor_kml_contains_only_their_features(res):
-    kml_a = cs.contractor_kml(res.a, res.names[0], cs.COLORS[0], "proj")
-    kml_b = cs.contractor_kml(res.b, res.names[1], cs.COLORS[1], "proj")
+    kml_a, ext_a = cs.contractor_file(res.a, res.names[0], "proj", cs.COLORS[0])
+    kml_b, ext_b = cs.contractor_file(res.b, res.names[1], "proj", cs.COLORS[1])
+    assert ext_a == ext_b == ".kml"
     pa, pb = parse_bytes(kml_a, "a.kml").features, parse_bytes(kml_b, "b.kml").features
     assert len(pa) == len(res.a) and len(pb) == len(res.b)
     assert {f.extended_data["Contractor"] for f in pa} == {res.names[0]}

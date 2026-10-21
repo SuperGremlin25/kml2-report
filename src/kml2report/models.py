@@ -221,6 +221,13 @@ class Feature:
     style: dict[str, str] = field(default_factory=dict)
     time_begin: str = ""
     time_end: str = ""
+    # Original presentation, kept verbatim so exports reproduce the user's own styling instead of default pins:
+    folders: tuple = ()          # real <Folder> names, outermost first (the Document is not included)
+    style_url: str = ""          # original <styleUrl>
+    style_xml: str = ""          # original inline <Style>/<StyleMap>, serialized
+    visibility: str = ""         # original <visibility> ("0" = hidden)
+    style_defs: dict = field(default_factory=dict, repr=False)   # shared per source file: id -> <Style>/<StyleMap> xml
+    resources: dict = field(default_factory=dict, repr=False)    # shared per source file: icon href -> image bytes
 
     def flat_dict(self, include_raw: bool = True) -> dict[str, str]:
         """Flat dictionary suitable for CSV/JSON export."""

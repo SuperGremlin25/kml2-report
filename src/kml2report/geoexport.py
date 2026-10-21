@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import html
 import io
 import json
@@ -184,17 +185,107 @@ def _geom_xml(g) -> str:
             f"</LinearRing></outerBoundaryIs>{inner}</Polygon>")
 
 
-def _placemark_xml(f: Feature, style_id: str = "") -> str:
-    attrs = feature_attributes(f)
-    shown = {k: v for k, v in attrs.items() if k not in ("name", "wkt", "raw_description")}
-    ext = "".join(f'<Data name="{escape(k, {chr(34): "&quot;"})}"><value>{escape(str(v))}</value></Data>'
-                  for k, v in shown.items())
+_KML_OPEN = ('<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2" '
+             'xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" '
+             'xmlns:atom="http://www.w3.org/2005/Atom">')
+_HREF = re.compile(r"<href>\s*([^<]+?)\s*</href>")
+_ID_ATTR = re.compile(r'^(<(?:Style|StyleMap)\b[^>]*?\bid=")[^"]*(")')
+
+
+def _set_id(xml: str, new_id: str) -> str:
+    return _ID_ATTR.sub(lambda m: f"{m.group(1)}{new_id}{m.group(2)}", xml, count=1)
+
+
+class _StyleBook:
+    """Collects the original <Style>/<StyleMap> definitions (and icon images) the exported features use, so the
+    user's own icons, scales, label styles and StyleMaps are reproduced exactly instead of replaced by defaults."""
+
+    def __init__(self) -> None:
+        self.defs: dict[str, str] = {}         # export id -> xml
+        self.resources: dict[str, bytes] = {}  # href inside the package -> image bytes
+        self._owner: dict[tuple, str] = {}     # (source file, original id) -> export id
+
+    def adopt_resources(self, xml: str, f: Feature) -> str:
+        """Record the icon files an xml fragment points at; keep their paths unique and inside the package."""
+        def fix(m: "re.Match[str]") -> str:
+            href = m.group(1)
+            data = f.resources.get(href)
+            if data is None:
+                return m.group(0)
+            key = href
+            unsafe = key.startswith(("/", "../")) or "/../" in key
+            if unsafe or (key in self.resources and self.resources[key] != data):
+                key = f"files/{hashlib.sha1(data).hexdigest()[:8]}_{key.rsplit('/', 1)[-1]}"
+            self.resources[key] = data
+            return m.group(0).replace(href, key)
+        return _HREF.sub(fix, xml)
+
+    def register(self, f: Feature, orig: str) -> str:
+        """Export id for the style ``orig`` as defined in ``f``'s source file (adds it, and what it points at)."""
+        k = (f.source_file, orig)
+        if k in self._owner:
+            return self._owner[k]
+        xml = f.style_defs.get(orig)
+        if xml is None:  # defined somewhere we do not have: keep the reference as it was
+            self._owner[k] = orig
+            return orig
+        self._owner[k] = orig  # provisional, guards against StyleMap cycles
+        for ref in sorted(set(re.findall(r"<styleUrl>#([^<]+)</styleUrl>", xml))):
+            new = self.register(f, ref)
+            if new != ref:
+                xml = xml.replace(f"<styleUrl>#{ref}</styleUrl>", f"<styleUrl>#{new}</styleUrl>")
+        xml = self.adopt_resources(xml, f)
+        eid, n = orig, 1
+        while eid in self.defs and self.defs[eid] != _set_id(xml, eid):  # same id, different content: keep both
+            n += 1
+            eid = f"{orig}__{n}"
+        self.defs.setdefault(eid, _set_id(xml, eid))
+        self._owner[k] = eid
+        return eid
+
+
+# columns kml2report adds for its own tables that do not belong inside a file handed to a crew.
+# latitude / longitude are deliberately NOT here: crews use them, so they stay in every placemark.
+_INTERNAL_COLUMNS = {"name", "wkt", "raw_description", "feature_id", "layer", "source_file", "folder_path",
+                     "geometry_type"}
+
+
+def _description_xml(f: Feature, shown: dict) -> str:
+    """The user's own description when there is one (their formatting and images intact), else a small table."""
+    note = f.extended_data.get("Split_Note", "")
+    if f.raw_description:
+        body = f.raw_description.replace("]]>", "]]]]><![CDATA[>")
+        if note:
+            body += f"<br/><i>{html.escape(note)}</i>"
+        return f"<description><![CDATA[{body}]]></description>"
     rows = "".join(f"<tr><td><b>{html.escape(str(k))}</b></td><td>{html.escape(str(v))}</td></tr>"
                    for k, v in shown.items() if v not in ("", None) and k not in ("source_file",))
-    desc = f"<description><![CDATA[<table>{rows}</table>]]></description>" if rows else ""
+    return f"<description><![CDATA[<table>{rows}</table>]]></description>" if rows else ""
+
+
+def _placemark_xml(f: Feature, book: _StyleBook, override_style: str = "") -> str:
+    attrs = feature_attributes(f)
+    shown = {k: v for k, v in attrs.items() if k not in _INTERNAL_COLUMNS}
+    ext = "".join(f'<Data name="{escape(k, {chr(34): "&quot;"})}"><value>{escape(str(v))}</value></Data>'
+                  for k, v in shown.items())
+    if override_style:                      # caller asked for a recolour: it replaces the original styling
+        style = f"<styleUrl>#{override_style}</styleUrl>"
+    elif f.style_xml:                       # the placemark's own inline style
+        style = book.adopt_resources(f.style_xml, f)
+    elif f.style_url.startswith("#"):       # a shared style defined in the file
+        style = f"<styleUrl>#{book.register(f, f.style_url[1:])}</styleUrl>"
+    elif f.style_url:                       # a style in another file / online: keep the reference
+        style = f"<styleUrl>{escape(f.style_url)}</styleUrl>"
+    else:
+        style = ""
+    vis = f"<visibility>{escape(f.visibility)}</visibility>" if f.visibility else ""
+    if f.time_end:
+        time = f"<TimeSpan><begin>{escape(f.time_begin)}</begin><end>{escape(f.time_end)}</end></TimeSpan>"
+    else:
+        time = f"<TimeStamp><when>{escape(f.time_begin)}</when></TimeStamp>" if f.time_begin else ""
     g = _geom_xml(f.geometry) if f.geometry and not f.geometry.is_empty else ""
-    style = f"<styleUrl>#{style_id}</styleUrl>" if style_id else ""
-    return f"<Placemark><name>{escape(f.name)}</name>{desc}{style}<ExtendedData>{ext}</ExtendedData>{g}</Placemark>"
+    return (f"<Placemark><name>{escape(f.name)}</name>{vis}{_description_xml(f, shown)}{time}{style}"
+            f"<ExtendedData>{ext}</ExtendedData>{g}</Placemark>")
 
 
 def _style_xml(style_id: str, color_hex: str) -> str:
@@ -203,23 +294,60 @@ def _style_xml(style_id: str, color_hex: str) -> str:
             f'<IconStyle><color>{_kml_color(color_hex)}</color><scale>1.0</scale></IconStyle></Style>')
 
 
-def to_kml_grouped_bytes(groups: list[tuple[str, list[Feature], Optional[str]]], name: str = "kml2report export",
-                         extra_xml: str = "", wrap_groups: bool = True) -> bytes:
-    """KML with one coloured group per entry: [(group name, features, '#rrggbb' or None), ...].
-    Features keep their original folder names inside each group; ``wrap_groups`` adds a top folder per group."""
-    styles, body = [], []
+def _folder_path(f: Feature) -> tuple:
+    return f.folders if f.folders else ((f.layer,) if f.layer else ())
+
+
+def _render_tree(node: dict) -> str:
+    kids = "".join(f"<Folder><name>{escape(k)}</name>{_render_tree(v)}</Folder>" for k, v in node["kids"].items())
+    return "".join(node["pms"]) + kids
+
+
+def build_kml(groups: list[tuple[str, list[Feature], Optional[str]]], name: str = "kml2report export",
+              extra_xml: str = "", wrap_groups: bool = True) -> tuple[bytes, dict]:
+    """KML text plus the icon files it needs: ``(kml bytes, {href: image bytes})``.
+
+    ``groups`` = [(group name, features, '#rrggbb' or None), ...].  A colour is an explicit override that replaces
+    the original styling of that group; with ``None`` every feature keeps exactly the style it came with
+    (icons, scales, labels, StyleMaps) and its original folder nesting."""
+    book = _StyleBook()
+    override_defs, body = [], []
     for gi, (gname, feats, color) in enumerate(groups):
         sid = f"grp{gi}" if color else ""
         if color:
-            styles.append(_style_xml(sid, color))
-        folders: dict[str, list[str]] = {}
+            override_defs.append(_style_xml(sid, color))
+        root: dict = {"kids": {}, "pms": []}
         for f in feats:
-            folders.setdefault(f.layer or "Features", []).append(_placemark_xml(f, sid))
-        inner = "".join(f"<Folder><name>{escape(k)}</name>{''.join(v)}</Folder>" for k, v in folders.items())
+            node = root
+            for part in _folder_path(f):
+                node = node["kids"].setdefault(part, {"kids": {}, "pms": []})
+            node["pms"].append(_placemark_xml(f, book, sid))
+        inner = _render_tree(root)
         body.append(f"<Folder><name>{escape(gname)}</name>{inner}</Folder>" if wrap_groups else inner)
-    return (f'<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2">'
-            f"<Document><name>{escape(name)}</name>{''.join(styles)}{''.join(body)}{extra_xml}</Document></kml>"
-            ).encode("utf-8")
+    kml = (f"{_KML_OPEN}<Document><name>{escape(name)}</name>{''.join(book.defs.values())}"
+           f"{''.join(override_defs)}{''.join(body)}{extra_xml}</Document></kml>")
+    return kml.encode("utf-8"), book.resources
+
+
+def to_kml_package(groups: list[tuple[str, list[Feature], Optional[str]]], name: str = "kml2report export",
+                   extra_xml: str = "", wrap_groups: bool = True) -> tuple[bytes, str]:
+    """Like :func:`build_kml` but returns a finished file: a ``.kmz`` carrying the icon images when the styles use
+    icons shipped inside a KMZ (a bare .kml would lose them), otherwise a plain ``.kml``.  ``(bytes, extension)``."""
+    kml, resources = build_kml(groups, name, extra_xml, wrap_groups)
+    if not resources:
+        return kml, ".kml"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("doc.kml", kml)
+        for href, data in resources.items():
+            z.writestr(href, data)
+    return buf.getvalue(), ".kmz"
+
+
+def to_kml_grouped_bytes(groups: list[tuple[str, list[Feature], Optional[str]]], name: str = "kml2report export",
+                         extra_xml: str = "", wrap_groups: bool = True) -> bytes:
+    """KML text only (icons that live inside a KMZ are not embedded - use :func:`to_kml_package` for those)."""
+    return build_kml(groups, name, extra_xml, wrap_groups)[0]
 
 
 def to_kml_bytes(features: list[Feature], name: str = "kml2report export", color: Optional[str] = None) -> bytes:

@@ -668,31 +668,44 @@ def difficulty_segments(features: list[Feature], difficulty: Difficulty, limit: 
 COLORS = ("#e6194b", "#4363d8")
 
 
-def contractor_kml(features: list[Feature], contractor: str, color: str, project: str = "") -> bytes:
-    """Clean KML containing only this contractor's footage and assets."""
+MIME = {".kml": "application/vnd.google-earth.kml+xml", ".kmz": "application/vnd.google-earth.kmz"}
+
+
+def contractor_file(features: list[Feature], contractor: str, project: str = "",
+                    color: Optional[str] = None) -> tuple[bytes, str]:
+    """One contractor's work as a finished file: ``(bytes, ".kml" | ".kmz")``.
+
+    Every feature keeps the icon, scale, label and folder structure it came with; ``color`` is only for the case
+    where you explicitly want to recolour.  A KMZ is written (with the icon images inside) when the original
+    styles use images that were packed in a KMZ."""
     title = f"{project} - {contractor}".strip(" -")
-    return geoexport.to_kml_grouped_bytes([(contractor, features, color)], title, wrap_groups=False)
+    return geoexport.to_kml_package([(contractor, features, color)], title, wrap_groups=False)
 
 
-def overview_kml(res: SplitResult, project: str = "") -> bytes:
+def overview_file(res: SplitResult, project: str = "", recolor: bool = False) -> tuple[bytes, str]:
+    """Both contractors in one file (a folder each) plus the boundary line.  Original styling is kept unless
+    ``recolor`` asks for contractor colours."""
     cut = "".join(f"{lon},{lat},0 " for lon, lat in res.cut_lonlat)
     cut_xml = (f"<Folder><name>Split line</name><Placemark><name>Contractor boundary</name><Style><LineStyle>"
                f"<color>ff00ffff</color><width>4</width></LineStyle></Style><LineString><coordinates>{cut}"
                f"</coordinates></LineString></Placemark></Folder>")
-    return geoexport.to_kml_grouped_bytes(
-        [(res.names[0], res.a, COLORS[0]), (res.names[1], res.b, COLORS[1])],
+    return geoexport.to_kml_package(
+        [(res.names[0], res.a, COLORS[0] if recolor else None), (res.names[1], res.b, COLORS[1] if recolor else None)],
         f"{project} - contractor split".strip(" -"), extra_xml=cut_xml)
 
 
-def bundle_zip(res: SplitResult, project: str = "project") -> bytes:
-    def safe(s: str) -> str:
-        return re.sub(r"[^A-Za-z0-9_.-]+", "_", s).strip("_") or "contractor"
+def _safe(s: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", s).strip("_") or "contractor"
 
+
+def bundle_zip(res: SplitResult, project: str = "project", recolor_overview: bool = False) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for i, (who, feats) in enumerate(((res.names[0], res.a), (res.names[1], res.b))):
+            data, ext = contractor_file(feats, who, project)
             # the index keeps names unique even when two sanitize alike ("ACME A" / "ACME_A") or say "overview"
-            z.writestr(f"{safe(project)}_contractor{i + 1}_{safe(who)}.kml", contractor_kml(feats, who, COLORS[i], project))
-        z.writestr(f"{safe(project)}_overview.kml", overview_kml(res, project))
-        z.writestr(f"{safe(project)}_split_summary.csv", res.stats.to_csv(index=False))
+            z.writestr(f"{_safe(project)}_contractor{i + 1}_{_safe(who)}{ext}", data)
+        data, ext = overview_file(res, project, recolor_overview)
+        z.writestr(f"{_safe(project)}_overview{ext}", data)
+        z.writestr(f"{_safe(project)}_split_summary.csv", res.stats.to_csv(index=False))
     return buf.getvalue()

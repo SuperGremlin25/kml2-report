@@ -336,3 +336,7 @@ Parser hardening: spaces inside coordinates (`-96.0, 29.0, 0`), bad tuples (skip
 - Search is exact and fast (sorted prefix sums), and refines the cut angle in small steps so a cut nearly parallel to long runs can still balance them.
 
 Balance is best-effort: one straight cut cannot equalize every quantity at once, so the summary table shows exactly what each contractor gets.
+
+### Your styling survives export
+
+Contractor KMLs, the overview and the "KML (clean)" export reproduce each placemark exactly as you built it: its icon, scale, label style, StyleMaps (normal/highlight), inline styles, visibility, folder nesting and your own description. If your icons are images packed inside a KMZ, the export is written as a **.kmz with those images included** (a bare .kml would lose them). Online icons (`http://...`) are kept as references. Nothing is recolored unless you tick "Recolor the overview by contractor" (overview only). Latitude and longitude stay in every placemark's data.
