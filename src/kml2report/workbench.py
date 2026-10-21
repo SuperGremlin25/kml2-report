@@ -279,6 +279,24 @@ def _render_split(vis: list[Feature], stem: str) -> None:
         w_size = st.slider("Each duct size", 0.0, 10.0, cs.DEFAULT_WEIGHTS["per_size"], 0.5, key="sp_w4")
         w_oth = st.slider("Other assets (poles, cabinets...)", 0.0, 10.0, cs.DEFAULT_WEIGHTS["other_assets"], 0.5,
                           key="sp_w5")
+        w_diff = st.slider("Difficulty-weighted work", 0.0, 10.0, cs.DEFAULT_WEIGHTS["difficulty"], 0.5, key="sp_w6",
+                           help="Footage counted harder in city / dense / tagged areas.")
+        w_dense = st.slider("Dense-area footage", 0.0, 10.0, cs.DEFAULT_WEIGHTS["dense"], 0.5, key="sp_w7",
+                            help="Makes sure each contractor gets a fair share of the city, not just open runs.")
+    with st.expander("City vs open runs: how hard is each stretch?", expanded=True):
+        st.caption("Feet are not all equal. Dense stretches (many turns, short blocks, many handholes) cost more "
+                   "than long straight runs, so the split balances the hard work too and each contractor gets a "
+                   "share of the city.")
+        auto = st.checkbox("Detect dense / city areas automatically", True, key="sp_auto",
+                           help="Measured from the file: vertices and assets per area, compared with this file's own typical density.")
+        factor = st.slider("Dense work costs ... x an open run", 1.0, 4.0, 2.0, 0.25, key="sp_factor", disabled=not auto)
+        layer_names = sorted({cs.layer_key(f) for f in vis})
+        hard_layers = st.multiselect("Folders you know are difficult (city, rock, river crossing...)", layer_names,
+                                     key="sp_hard")
+        hard_mult = st.slider("Those folders cost ... x", 1.0, 5.0, 2.0, 0.25, key="sp_hardmult",
+                              disabled=not hard_layers)
+        show_diff = st.checkbox("Show what counts as difficult on the map", False, key="sp_showdiff")
+    difficulty = cs.Difficulty(auto=auto, factor=factor, hard_layers=tuple(hard_layers), hard_multiplier=hard_mult)
     direction = st.radio("Cut direction", ["Best (auto)", "North-South line", "East-West line"], horizontal=True,
                          key="sp_dir")
     fixed = {"Best (auto)": None, "North-South line": 0.0, "East-West line": 90.0}[direction]
@@ -287,12 +305,14 @@ def _render_split(vis: list[Feature], stem: str) -> None:
     for f in vis:
         sig.update(repr((f.name, f.layer, f.geometry.to_wkt() if f.geometry else "", sorted(f.extended_data.items()),
                          sorted(f.parsed_attributes.items()), f.raw_description)).encode())
-    params = (sig.hexdigest(), name_a, name_b, share, clip, w_total, w_duct, w_hh, w_size, w_oth, direction)
+    params = (sig.hexdigest(), name_a, name_b, share, clip, w_total, w_duct, w_hh, w_size, w_oth, w_diff, w_dense,
+              direction, auto, factor, tuple(hard_layers), hard_mult)
     if st.button("⚖️ Split into two contractors", type="primary", key="sp_go"):
         try:
             cs.validate_names((name_a, name_b))
-            weights = {"total": w_total, "duct": w_duct, "handholes": w_hh, "per_size": w_size, "other_assets": w_oth}
-            cands, _ = cs.search_splits(vis, share, clip, weights, fixed_angle=fixed)
+            weights = {"total": w_total, "duct": w_duct, "handholes": w_hh, "per_size": w_size, "other_assets": w_oth,
+                       "difficulty": w_diff, "dense": w_dense}
+            cands, _ = cs.search_splits(vis, share, clip, weights, fixed_angle=fixed, difficulty=difficulty)
             st.session_state["sp_cands"] = cands
             st.session_state["sp_params"] = params
         except ValueError as exc:
@@ -306,7 +326,7 @@ def _render_split(vis: list[Feature], stem: str) -> None:
         labels = [f"#{i + 1}  cut at {c.angle_deg:.0f}°  (imbalance score {c.score:.3f})" for i, c in enumerate(cands)]
         pick = labels.index(st.selectbox("Alternative cuts", labels, key="sp_pick"))
     try:
-        res = cs.apply_split(vis, cands[pick], clip, (name_a, name_b))
+        res = cs.apply_split(vis, cands[pick], clip, (name_a, name_b), difficulty)
     except ValueError as exc:
         st.error(str(exc))
         return
@@ -336,6 +356,12 @@ def _render_split(vis: list[Feature], stem: str) -> None:
                         get_fill_color="[properties.rgb[0], properties.rgb[1], properties.rgb[2], 80]",
                         get_point_radius=3, point_radius_min_pixels=4, line_width_min_pixels=3)
               for f, c in ((res.a, cs.COLORS[0]), (res.b, cs.COLORS[1]))]
+    if show_diff and difficulty.enabled:
+        segs = cs.difficulty_segments(vis, difficulty)
+        for sgm in segs:  # open run = grey, hardest = deep orange
+            t = min(max((sgm["mult"] - 1.0) / max(difficulty.factor * difficulty.hard_multiplier - 1.0, 1e-9), 0.0), 1.0)
+            sgm["color"] = [int(150 + 105 * t), int(150 - 70 * t), int(150 - 150 * t), 230]
+        layers = [pdk.Layer("PathLayer", segs, get_path="path", get_color="color", width_min_pixels=4, pickable=False)]
     layers.append(pdk.Layer("PathLayer", [{"path": [list(p) for p in res.cut_lonlat]}], get_path="path",
                             get_color=[255, 200, 0, 255], width_min_pixels=3, get_width=2))
     b = gis.bounds_of(vis)
@@ -346,6 +372,8 @@ def _render_split(vis: list[Feature], stem: str) -> None:
                                                                   latitude=(b[1] + b[3]) / 2,
                                                                   zoom=max(1.0, min(19.0, math.log2(360 / span) - 1)))),
                         use_container_width=True)
+    if show_diff and difficulty.enabled:
+        st.caption("Difficulty map: grey = open run, orange = dense / difficult. Uncheck to see the contractor colors again.")
     st.markdown(f"<span style='color:{cs.COLORS[0]}'>■</span> {name_a} &nbsp; "
                 f"<span style='color:{cs.COLORS[1]}'>■</span> {name_b} &nbsp; "
                 f"<span style='color:#ffc800'>■</span> boundary", unsafe_allow_html=True)

@@ -328,4 +328,11 @@ Parser hardening: spaces inside coordinates (`-96.0, 29.0, 0`), bad tuples (skip
 - Adjust the split (e.g. 60/40), the balance weights, or pick one of the alternative cuts.
 - Download **Contractor A / B KML** (only their features, color-coded, with footage in each popup; cut lines are marked and their stale length attribute removed), an overview KML showing both plus the boundary, and a zip with a summary CSV.
 
+**Not all feet are equal.** Long straight runs are easy; dense city work (many turns, short blocks, many handholes) is not. The split therefore also balances *difficulty-weighted* footage and *dense-area* footage, so each contractor gets a share of the city instead of one getting all the open runs.
+
+- **Automatic:** dense areas are detected from the file itself (vertices and assets per area, compared with that file's own typical density), so a uniformly rural file is not flagged. Dense work counts as 1x-4x an open run (default 2x).
+- **Your knowledge:** tag folders you know are hard (city, rock, river crossing) and give them a multiplier.
+- **See it:** "Show what counts as difficult on the map" colors every stretch grey (open run) to orange (hard).
+- Search is exact and fast (sorted prefix sums), and refines the cut angle in small steps so a cut nearly parallel to long runs can still balance them.
+
 Balance is best-effort: one straight cut cannot equalize every quantity at once, so the summary table shows exactly what each contractor gets.
