@@ -125,6 +125,7 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
             if st.button("Create buffer", key="wb_buf_go"):
                 gj = gis.buffer_features(vis, dist)
                 st.session_state["wb_buffer"] = gj
+                st.rerun()  # the map tab renders earlier in this run; redraw so the buffer shows
             if st.session_state.get("wb_buffer"):
                 n = len(st.session_state["wb_buffer"]["features"])
                 st.success(f"{n} buffer polygon(s) shown on the map tab")
@@ -236,6 +237,9 @@ def _render_map(vis: list[Feature], layers: list[str], color_by: str, basemap: s
                                      get_size=13, get_color=[20, 20, 20, 255], get_pixel_offset=[0, -14]))
 
     b = gis.bounds_of(vis)
+    if b is None:
+        st.info("None of the visible features have usable coordinates - see the Attribute Table and QA/QC tabs.")
+        return
     lon, lat = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
     span = max(b[2] - b[0], b[3] - b[1], 1e-5)
     import math
