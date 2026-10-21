@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from typing import Optional
@@ -281,10 +282,15 @@ def _render_split(vis: list[Feature], stem: str) -> None:
     direction = st.radio("Cut direction", ["Best (auto)", "North-South line", "East-West line"], horizontal=True,
                          key="sp_dir")
     fixed = {"Best (auto)": None, "North-South line": 0.0, "East-West line": 90.0}[direction]
-    params = (len(vis), name_a, name_b, share, clip, w_total, w_duct, w_hh, w_size, w_oth, direction,
-              sum(len(f.name) for f in vis))
+    # the cache key covers the visible features' geometry and attributes, not just their count
+    sig = hashlib.sha1()
+    for f in vis:
+        sig.update(repr((f.name, f.layer, f.geometry.to_wkt() if f.geometry else "", sorted(f.extended_data.items()),
+                         sorted(f.parsed_attributes.items()), f.raw_description)).encode())
+    params = (sig.hexdigest(), name_a, name_b, share, clip, w_total, w_duct, w_hh, w_size, w_oth, direction)
     if st.button("⚖️ Split into two contractors", type="primary", key="sp_go"):
         try:
+            cs.validate_names((name_a, name_b))
             weights = {"total": w_total, "duct": w_duct, "handholes": w_hh, "per_size": w_size, "other_assets": w_oth}
             cands, _ = cs.search_splits(vis, share, clip, weights, fixed_angle=fixed)
             st.session_state["sp_cands"] = cands
@@ -299,7 +305,12 @@ def _render_split(vis: list[Feature], stem: str) -> None:
     if len(cands) > 1:
         labels = [f"#{i + 1}  cut at {c.angle_deg:.0f}°  (imbalance score {c.score:.3f})" for i, c in enumerate(cands)]
         pick = labels.index(st.selectbox("Alternative cuts", labels, key="sp_pick"))
-    res = cs.apply_split(vis, cands[pick], clip, (name_a, name_b))
+    try:
+        res = cs.apply_split(vis, cands[pick], clip, (name_a, name_b))
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    name_a, name_b = res.names
 
     tot = res.stats.iloc[0]
     m1, m2, m3 = st.columns(3)
@@ -341,9 +352,9 @@ def _render_split(vis: list[Feature], stem: str) -> None:
 
     d1, d2, d3, d4 = st.columns(4)
     d1.download_button(f"⬇️ {name_a} KML", cs.contractor_kml(res.a, name_a, cs.COLORS[0], stem),
-                       f"{stem}_{name_a}.kml".replace(" ", "_"), "application/vnd.google-earth.kml+xml")
+                       f"{stem}_contractor1.kml".replace(" ", "_"), "application/vnd.google-earth.kml+xml")
     d2.download_button(f"⬇️ {name_b} KML", cs.contractor_kml(res.b, name_b, cs.COLORS[1], stem),
-                       f"{stem}_{name_b}.kml".replace(" ", "_"), "application/vnd.google-earth.kml+xml")
+                       f"{stem}_contractor2.kml".replace(" ", "_"), "application/vnd.google-earth.kml+xml")
     d3.download_button("⬇️ Overview KML", cs.overview_kml(res, stem), f"{stem}_split_overview.kml",
                        "application/vnd.google-earth.kml+xml")
     d4.download_button("📦 Everything (.zip)", cs.bundle_zip(res, stem), f"{stem}_contractor_split.zip",

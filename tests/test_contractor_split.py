@@ -146,3 +146,77 @@ def test_unlabelled_lines_do_not_create_a_metric_per_feature():
         f'</coordinates></LineString></Placemark>'.encode() for i in range(20)) + b"</Document></kml>"
     names = cs.metric_names(parse_bytes(kml, "u.kml").features)
     assert names == [cs.TOTAL, cs.DUCT, cs.HANDHOLES, "Footage: Unspecified"]
+
+
+# ---- review fixes -------------------------------------------------------
+
+def test_all_zero_weights_rejected(feats):
+    zero = {"total": 0, "duct": 0, "handholes": 0, "per_size": 0, "other_assets": 0}
+    with pytest.raises(ValueError, match="weight"):
+        cs.split_contractors(feats, weights=zero)
+    # positive weights only for metrics this data doesn't have are just as unusable
+    kml = (b'<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>L</name><LineString><coordinates>'
+           b'-96,29 -96,29.01</coordinates></LineString></Placemark><Placemark><name>L2</name><LineString>'
+           b'<coordinates>-95,29 -95,29.01</coordinates></LineString></Placemark></kml>')
+    with pytest.raises(ValueError, match="weight"):
+        cs.split_contractors(parse_bytes(kml, "l.kml").features,
+                             weights={"total": 0, "duct": 0, "handholes": 5, "per_size": 0, "other_assets": 5})
+
+
+def test_search_reaches_a_cut_far_from_dense_vertices():
+    # one long run with 40 vertices in its first 1% and a single far endpoint: the balanced cut is mid-run
+    dense = " ".join(f"-96.{i:04d},29.0" for i in range(40))
+    kml = (f'<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>long</name><LineString><coordinates>'
+           f'{dense} -95.9,29.0</coordinates></LineString></Placemark></kml>').encode()
+    r = cs.split_contractors(parse_bytes(kml, "d.kml").features, fixed_angle=0.0)
+    a, b = row(r, cs.TOTAL)
+    assert abs(a - b) / (a + b) < 0.02
+
+
+def test_clip_point_lies_on_the_projected_boundary():
+    import math
+    from kml2report.gis import WGS84, centroid_lonlat, transformer, utm_epsg
+    fs = _features()
+    cand = cs.search_splits(fs)[0][0]
+    r = cs.apply_split(fs, cand)
+    c = centroid_lonlat(fs)
+    fwd = transformer(WGS84, f"EPSG:{utm_epsg(*c)}")
+    th = math.radians(cand.angle_deg)
+    pieces = [f for f in r.a + r.b if "Split_Note" in f.extended_data]
+    assert pieces
+    for f in pieces:  # every end that touches the cut sits on it (to well under a millimetre)
+        for g in f.geometry.iter_simple():
+            for lon, lat, _ in (g.coordinates[0], g.coordinates[-1]):
+                x, y = fwd.transform(lon, lat)
+                d = x * math.cos(th) + y * math.sin(th) - cand.offset_m
+                if abs(d) < 1.0:
+                    assert abs(d) < 1e-3
+    # exported footage agrees with what the search scored
+    assert row(r, cs.TOTAL)[0] / (row(r, cs.TOTAL)[0] + row(r, cs.TOTAL)[1]) == pytest.approx(0.5, abs=0.02)
+
+
+def test_exported_features_keep_full_duct_package():
+    from kml2report.description_parser import parse_description
+    fs = _features()
+    for f in fs:
+        f.parsed_attributes = parse_description(f.raw_description)  # repeated Duct_Size rows keep only the last one
+    r = cs.split_contractors(fs)
+    v = [f for f in r.a + r.b if f.name.startswith("Run V")]
+    assert v and all(f.extended_data["Duct_Size"] == '2" + 2"' and f.extended_data["Duct_Count"] == "2" for f in v)
+    assert not any(k.lower() == "duct_size" for f in v for k in f.parsed_attributes)
+
+
+@pytest.mark.parametrize("names", [("A", "A"), ("A", " a "), ("", "B"), ("metric", "B"), ("A", "difference"),
+                                   ("A", "A share %")])
+def test_bad_contractor_names_rejected(feats, names):
+    with pytest.raises(ValueError):
+        cs.split_contractors(feats, names=names)
+
+
+def test_zip_filenames_are_unique_even_for_alike_names(feats):
+    r = cs.split_contractors(feats, names=("ACME A", "ACME_A"))
+    names = zipfile.ZipFile(io.BytesIO(cs.bundle_zip(r, "p"))).namelist()
+    assert len(names) == len(set(names)) == 4
+    r2 = cs.split_contractors(feats, names=("overview", "B"))
+    names2 = zipfile.ZipFile(io.BytesIO(cs.bundle_zip(r2, "p"))).namelist()
+    assert len(names2) == len(set(names2)) == 4

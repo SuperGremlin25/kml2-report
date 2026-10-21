@@ -75,6 +75,12 @@ def _attrs(f: Feature) -> dict[str, str]:
     return attrs
 
 
+def duct_attrs(f: Feature) -> dict[str, str]:
+    """Normalized duct package attributes (Duct_Size / Duct_Count / Duct_Package) when the feature has any."""
+    a = _attrs(f)
+    return {k: a[k] for k in ("Duct_Size", "Duct_Count", "Duct_Package") if a.get(k)}
+
+
 def classify(f: Feature) -> FeatureInfo:
     a = _attrs(f)
     info = FeatureInfo()
@@ -266,6 +272,9 @@ def search_splits(features: list[Feature], share_a: float = 0.5, clip: bool = Tr
     w = {**DEFAULT_WEIGHTS, **(weights or {})}
     a = _prepare(features)
     wv = _weight_vector(a.names, w)
+    if wv[a.total > 0].sum() <= 0:
+        raise ValueError("Every balance weight that applies to this data is zero - raise at least one weight "
+                         "(footage, duct-feet, handholes, duct sizes or other assets).")
     angles = [fixed_angle] if fixed_angle is not None else list(np.arange(0, 360, angle_step))
     xs = np.concatenate([a.seg[:, [0, 2]].ravel(), a.pt[:, 0], a.cen[:, 0]])
     ys = np.concatenate([a.seg[:, [1, 3]].ravel(), a.pt[:, 1], a.cen[:, 1]])
@@ -273,7 +282,9 @@ def search_splits(features: list[Feature], share_a: float = 0.5, clip: bool = Tr
     for ang in angles:
         th = math.radians(ang)
         proj = xs * math.cos(th) + ys * math.sin(th)
-        offs = np.unique(np.quantile(proj, np.linspace(0.02, 0.98, 241)))
+        # quantiles follow dense assets; the uniform samples cover the whole extent so sparse, long runs can't hide a cut
+        offs = np.unique(np.concatenate([np.quantile(proj, np.linspace(0.02, 0.98, 241)),
+                                         np.linspace(proj.min(), proj.max(), 241)[1:-1]]))
         sc = _evaluate(a, th, offs, clip, share_a, wv)
         k = int(np.argmin(sc))
         lo, hi = offs[max(k - 1, 0)], offs[min(k + 1, len(offs) - 1)]
@@ -300,8 +311,13 @@ def _lerp(p: Coord, q: Coord, t: float) -> Coord:
     return (p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, p[2] + (q[2] - p[2]) * t)
 
 
-def _clip_polyline(coords: list[Coord], d: np.ndarray) -> tuple[list[list[Coord]], list[list[Coord]]]:
-    """Split a polyline at d=0.  Side A is d<0.  Altitude is interpolated at the cut."""
+def _clip_polyline(coords: list[Coord], d: np.ndarray, xy: Optional[np.ndarray] = None, back=None
+                   ) -> tuple[list[list[Coord]], list[list[Coord]]]:
+    """Split a polyline at d=0.  Side A is d<0.  Altitude is interpolated at the cut.
+
+    With ``xy`` (projected vertex coordinates) and ``back`` (projected -> lon/lat transformer) the crossing is
+    found in the same projected plane the distances were measured in and then transformed back, so it lies on the
+    boundary exactly; without them the crossing is interpolated in lon/lat."""
     runs_a: list[list[Coord]] = []
     runs_b: list[list[Coord]] = []
 
@@ -314,8 +330,13 @@ def _clip_polyline(coords: list[Coord], d: np.ndarray) -> tuple[list[list[Coord]
     for i in range(1, len(coords)):
         s0, s1 = d[i - 1] < 0, d[i] < 0
         if s0 != s1:
-            t = d[i - 1] / (d[i - 1] - d[i])
-            p = _lerp(coords[i - 1], coords[i], float(t))
+            t = float(d[i - 1] / (d[i - 1] - d[i]))
+            p = _lerp(coords[i - 1], coords[i], t)
+            if xy is not None and back is not None:
+                x = xy[i - 1, 0] + t * (xy[i, 0] - xy[i - 1, 0])
+                y = xy[i - 1, 1] + t * (xy[i, 1] - xy[i - 1, 1])
+                lon, lat = back.transform(x, y)
+                p = (float(lon), float(lat), p[2])
             cur.append(p)
             flush(cur, bool(s0))
             cur = [p]
@@ -345,18 +366,38 @@ class SplitResult:
     warnings: list[str] = field(default_factory=list)
 
 
+def validate_names(names: tuple[str, str]) -> tuple[str, str]:
+    """Contractor names become table columns and file labels, so they must be distinct and not clash with the
+    report's own fields."""
+    a, b = (n.strip() for n in names)
+    if not a or not b:
+        raise ValueError("Give both contractors a name.")
+    if a.casefold() == b.casefold():
+        raise ValueError("The two contractors need different names.")
+    reserved = {"metric", "difference"}
+    for n in (a, b):
+        if n.casefold() in reserved or n.casefold().endswith(" share %"):
+            raise ValueError(f"'{n}' is a reserved report column name - choose another contractor name.")
+    return a, b
+
+
 def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True,
                 names: tuple[str, str] = ("Contractor A", "Contractor B")) -> SplitResult:
     """Divide ``features`` at the chosen cut into two sets of (new) Feature objects."""
+    names = validate_names(names)
     c = centroid_lonlat(features)
     epsg = f"EPSG:{utm_epsg(*c)}"
     fwd, back = transformer(WGS84, epsg), transformer(epsg, WGS84)
     th = math.radians(cand.angle_deg)
     nx, ny = math.cos(th), math.sin(th)
 
-    def dist(coords: list[Coord]) -> np.ndarray:
+    def project(coords: list[Coord]) -> np.ndarray:
         x, y = fwd.transform([p[0] for p in coords], [p[1] for p in coords])
-        return np.asarray(x) * nx + np.asarray(y) * ny - cand.offset_m
+        return np.column_stack([np.asarray(x), np.asarray(y)])
+
+    def dist(coords: list[Coord]) -> np.ndarray:
+        xy = project(coords)
+        return xy[:, 0] * nx + xy[:, 1] * ny - cand.offset_m
 
     side_a: list[Feature] = []
     side_b: list[Feature] = []
@@ -367,6 +408,11 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
         n.geometry = geom
         n.extended_data = dict(f.extended_data)
         n.parsed_attributes = dict(f.parsed_attributes)
+        for key, val in duct_attrs(f).items():  # the package/count the split was scored on travels with the work
+            for d in (n.extended_data, n.parsed_attributes):
+                for k in [k for k in d if k.lower() == key.lower()]:
+                    del d[k]
+            n.extended_data[key] = val
         if cut:
             for d in (n.extended_data, n.parsed_attributes):  # stale: these describe the uncut line
                 for k in [k for k in d if k.lower() in LENGTH_KEYS]:
@@ -392,7 +438,8 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
             if not p.coordinates:
                 continue
             if clip and p.geometry_type in ("LineString", "Track") and len(p.coordinates) >= 2:
-                ra, rb = _clip_polyline(p.coordinates, dist(p.coordinates))
+                xy = project(p.coordinates)
+                ra, rb = _clip_polyline(p.coordinates, xy[:, 0] * nx + xy[:, 1] * ny - cand.offset_m, xy, back)
                 parts_a += [Geometry("LineString", r) for r in ra]
                 parts_b += [Geometry("LineString", r) for r in rb]
             else:
@@ -435,6 +482,7 @@ def split_contractors(features: list[Feature], share_a: float = 0.5, clip: bool 
                       weights: Optional[dict] = None, fixed_angle: Optional[float] = None,
                       names: tuple[str, str] = ("Contractor A", "Contractor B")) -> SplitResult:
     """One call: find the most balanced straight cut and apply it."""
+    names = validate_names(names)
     cands, _ = search_splits(features, share_a, clip, weights, fixed_angle=fixed_angle)
     return apply_split(features, cands[0], clip, names)
 
@@ -469,7 +517,8 @@ def bundle_zip(res: SplitResult, project: str = "project") -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for i, (who, feats) in enumerate(((res.names[0], res.a), (res.names[1], res.b))):
-            z.writestr(f"{safe(project)}_{safe(who)}.kml", contractor_kml(feats, who, COLORS[i], project))
+            # the index keeps names unique even when two sanitize alike ("ACME A" / "ACME_A") or say "overview"
+            z.writestr(f"{safe(project)}_contractor{i + 1}_{safe(who)}.kml", contractor_kml(feats, who, COLORS[i], project))
         z.writestr(f"{safe(project)}_overview.kml", overview_kml(res, project))
         z.writestr(f"{safe(project)}_split_summary.csv", res.stats.to_csv(index=False))
     return buf.getvalue()
