@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import io
 import json
 import re
@@ -161,31 +162,65 @@ def to_dxf_bytes(features: list[Feature], dst_epsg: Optional[str] = None, units_
 # KML round-trip (cleaned, flattened)
 # ---------------------------------------------------------------------------
 
-def to_kml_bytes(features: list[Feature], name: str = "kml2report export") -> bytes:
+def _kml_color(hex_rgb: str, alpha: str = "ff") -> str:
+    h = hex_rgb.lstrip("#")
+    return f"{alpha}{h[4:6]}{h[2:4]}{h[0:2]}"
+
+
+def _geom_xml(g) -> str:
     def coords(cs):
         return " ".join(f"{c[0]},{c[1]},{c[2]}" for c in cs)
 
-    def geom_xml(g):
-        if g.parts:
-            return "<MultiGeometry>" + "".join(geom_xml(p) for p in g.parts) + "</MultiGeometry>"
-        t = g.geometry_type
-        if t == "Point":
-            return f"<Point><coordinates>{coords(g.coordinates[:1])}</coordinates></Point>"
-        if t in ("LineString", "Track"):
-            return f"<LineString><coordinates>{coords(g.coordinates)}</coordinates></LineString>"
-        inner = "".join(f"<innerBoundaryIs><LinearRing><coordinates>{coords(h)}</coordinates></LinearRing></innerBoundaryIs>"
-                        for h in g.holes)
-        return (f"<Polygon><outerBoundaryIs><LinearRing><coordinates>{coords(g.coordinates)}</coordinates>"
-                f"</LinearRing></outerBoundaryIs>{inner}</Polygon>")
+    if g.parts:
+        return "<MultiGeometry>" + "".join(_geom_xml(p) for p in g.parts) + "</MultiGeometry>"
+    t = g.geometry_type
+    if t == "Point":
+        return f"<Point><coordinates>{coords(g.coordinates[:1])}</coordinates></Point>"
+    if t in ("LineString", "Track"):
+        return f"<LineString><coordinates>{coords(g.coordinates)}</coordinates></LineString>"
+    inner = "".join(f"<innerBoundaryIs><LinearRing><coordinates>{coords(h)}</coordinates></LinearRing></innerBoundaryIs>"
+                    for h in g.holes)
+    return (f"<Polygon><outerBoundaryIs><LinearRing><coordinates>{coords(g.coordinates)}</coordinates>"
+            f"</LinearRing></outerBoundaryIs>{inner}</Polygon>")
 
-    folders: dict[str, list[str]] = {}
-    for f in features:
-        attrs = feature_attributes(f)
-        ext = "".join(f'<Data name="{escape(k, {chr(34): "&quot;"})}"><value>{escape(str(v))}</value></Data>'
-                      for k, v in attrs.items() if k not in ("name", "wkt", "raw_description"))
-        g = geom_xml(f.geometry) if f.geometry and not f.geometry.is_empty else ""
-        folders.setdefault(f.layer or "Features", []).append(
-            f"<Placemark><name>{escape(f.name)}</name><ExtendedData>{ext}</ExtendedData>{g}</Placemark>")
-    body = "".join(f"<Folder><name>{escape(k)}</name>{''.join(v)}</Folder>" for k, v in folders.items())
+
+def _placemark_xml(f: Feature, style_id: str = "") -> str:
+    attrs = feature_attributes(f)
+    shown = {k: v for k, v in attrs.items() if k not in ("name", "wkt", "raw_description")}
+    ext = "".join(f'<Data name="{escape(k, {chr(34): "&quot;"})}"><value>{escape(str(v))}</value></Data>'
+                  for k, v in shown.items())
+    rows = "".join(f"<tr><td><b>{html.escape(str(k))}</b></td><td>{html.escape(str(v))}</td></tr>"
+                   for k, v in shown.items() if v not in ("", None) and k not in ("source_file",))
+    desc = f"<description><![CDATA[<table>{rows}</table>]]></description>" if rows else ""
+    g = _geom_xml(f.geometry) if f.geometry and not f.geometry.is_empty else ""
+    style = f"<styleUrl>#{style_id}</styleUrl>" if style_id else ""
+    return f"<Placemark><name>{escape(f.name)}</name>{desc}{style}<ExtendedData>{ext}</ExtendedData>{g}</Placemark>"
+
+
+def _style_xml(style_id: str, color_hex: str) -> str:
+    return (f'<Style id="{style_id}"><LineStyle><color>{_kml_color(color_hex)}</color><width>3</width></LineStyle>'
+            f'<PolyStyle><color>{_kml_color(color_hex, "66")}</color></PolyStyle>'
+            f'<IconStyle><color>{_kml_color(color_hex)}</color><scale>1.0</scale></IconStyle></Style>')
+
+
+def to_kml_grouped_bytes(groups: list[tuple[str, list[Feature], Optional[str]]], name: str = "kml2report export",
+                         extra_xml: str = "", wrap_groups: bool = True) -> bytes:
+    """KML with one coloured group per entry: [(group name, features, '#rrggbb' or None), ...].
+    Features keep their original folder names inside each group; ``wrap_groups`` adds a top folder per group."""
+    styles, body = [], []
+    for gi, (gname, feats, color) in enumerate(groups):
+        sid = f"grp{gi}" if color else ""
+        if color:
+            styles.append(_style_xml(sid, color))
+        folders: dict[str, list[str]] = {}
+        for f in feats:
+            folders.setdefault(f.layer or "Features", []).append(_placemark_xml(f, sid))
+        inner = "".join(f"<Folder><name>{escape(k)}</name>{''.join(v)}</Folder>" for k, v in folders.items())
+        body.append(f"<Folder><name>{escape(gname)}</name>{inner}</Folder>" if wrap_groups else inner)
     return (f'<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2">'
-            f"<Document><name>{escape(name)}</name>{body}</Document></kml>").encode("utf-8")
+            f"<Document><name>{escape(name)}</name>{''.join(styles)}{''.join(body)}{extra_xml}</Document></kml>"
+            ).encode("utf-8")
+
+
+def to_kml_bytes(features: list[Feature], name: str = "kml2report export", color: Optional[str] = None) -> bytes:
+    return to_kml_grouped_bytes([(name, features, color)], name, wrap_groups=False)

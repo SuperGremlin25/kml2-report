@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 from typing import Optional
 
 import pandas as pd
@@ -71,8 +73,9 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
         s = search.lower()
         vis = [f for f in vis if s in " ".join([f.name, f.raw_description, *map(str, gis.feature_attributes(f).values())]).lower()]
 
-    t_map, t_table, t_stats, t_analysis, t_qa, t_export = right.tabs(
-        ["🗺️ Map", "📋 Attribute Table", "📊 Statistics", "🧭 Analysis", "✅ QA / QC", "📦 Export"])
+    t_map, t_table, t_stats, t_analysis, t_qa, t_split, t_export = right.tabs(
+        ["🗺️ Map", "📋 Attribute Table", "📊 Statistics", "🧭 Analysis", "✅ QA / QC", "👷 Contractor Split",
+         "📦 Export"])
 
     # ------------------------------------------------------------------ map
     with t_map:
@@ -167,6 +170,10 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
                 st.dataframe(qdf, use_container_width=True, height=420)
                 st.download_button("⬇️ QA report CSV", qdf.to_csv(index=False), f"{stem}_qa.csv", "text/csv")
 
+    # ----------------------------------------------------------- contractor split
+    with t_split:
+        _render_split(vis, stem)
+
     # --------------------------------------------------------------- export
     with t_export:
         st.caption(f"Exports include the {len(vis):,} currently visible feature(s).")
@@ -251,3 +258,104 @@ def _render_map(vis: list[Feature], layers: list[str], color_by: str, basemap: s
     if color_by == "Layer":
         st.caption("  ".join(f"<span style='color:{c}'>■</span> {n}" for n, c in layer_color.items()
                              if n in {_layer_key(f) for f in vis}), unsafe_allow_html=True)
+
+
+def _render_split(vis: list[Feature], stem: str) -> None:
+    import pydeck as pdk
+    from kml2report import contractor_split as cs
+
+    st.caption("Divide the build into two contiguous contractor areas with matched footage, duct and handholes, "
+               "then export a clean KML for each contractor containing only their work.")
+    c1, c2 = st.columns(2)
+    name_a = c1.text_input("Contractor 1", "Contractor A", key="sp_na")
+    name_b = c2.text_input("Contractor 2", "Contractor B", key="sp_nb")
+    share = st.slider(f"{name_a} share of the work (%)", 30, 70, 50, key="sp_share") / 100
+    clip = st.checkbox("Cut lines exactly at the boundary (equalizes footage precisely)", True, key="sp_clip",
+                       help="Off = whole segments go to whichever side holds their center; no line is cut.")
+    with st.expander("What matters most? (balance weights)"):
+        w_total = st.slider("Total footage", 0.0, 10.0, cs.DEFAULT_WEIGHTS["total"], 0.5, key="sp_w1")
+        w_duct = st.slider("Duct-feet (footage x ducts)", 0.0, 10.0, cs.DEFAULT_WEIGHTS["duct"], 0.5, key="sp_w2")
+        w_hh = st.slider("Handholes", 0.0, 10.0, cs.DEFAULT_WEIGHTS["handholes"], 0.5, key="sp_w3")
+        w_size = st.slider("Each duct size", 0.0, 10.0, cs.DEFAULT_WEIGHTS["per_size"], 0.5, key="sp_w4")
+        w_oth = st.slider("Other assets (poles, cabinets...)", 0.0, 10.0, cs.DEFAULT_WEIGHTS["other_assets"], 0.5,
+                          key="sp_w5")
+    direction = st.radio("Cut direction", ["Best (auto)", "North-South line", "East-West line"], horizontal=True,
+                         key="sp_dir")
+    fixed = {"Best (auto)": None, "North-South line": 0.0, "East-West line": 90.0}[direction]
+    # the cache key covers the visible features' geometry and attributes, not just their count
+    sig = hashlib.sha1()
+    for f in vis:
+        sig.update(repr((f.name, f.layer, f.geometry.to_wkt() if f.geometry else "", sorted(f.extended_data.items()),
+                         sorted(f.parsed_attributes.items()), f.raw_description)).encode())
+    params = (sig.hexdigest(), name_a, name_b, share, clip, w_total, w_duct, w_hh, w_size, w_oth, direction)
+    if st.button("⚖️ Split into two contractors", type="primary", key="sp_go"):
+        try:
+            cs.validate_names((name_a, name_b))
+            weights = {"total": w_total, "duct": w_duct, "handholes": w_hh, "per_size": w_size, "other_assets": w_oth}
+            cands, _ = cs.search_splits(vis, share, clip, weights, fixed_angle=fixed)
+            st.session_state["sp_cands"] = cands
+            st.session_state["sp_params"] = params
+        except ValueError as exc:
+            st.error(str(exc))
+            return
+    if st.session_state.get("sp_params") != params or not st.session_state.get("sp_cands"):
+        return
+    cands = st.session_state["sp_cands"]
+    pick = 0
+    if len(cands) > 1:
+        labels = [f"#{i + 1}  cut at {c.angle_deg:.0f}°  (imbalance score {c.score:.3f})" for i, c in enumerate(cands)]
+        pick = labels.index(st.selectbox("Alternative cuts", labels, key="sp_pick"))
+    try:
+        res = cs.apply_split(vis, cands[pick], clip, (name_a, name_b))
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    name_a, name_b = res.names
+
+    tot = res.stats.iloc[0]
+    m1, m2, m3 = st.columns(3)
+    m1.metric(f"{name_a} footage", f"{tot[name_a]:,.0f} ft")
+    m2.metric(f"{name_b} footage", f"{tot[name_b]:,.0f} ft")
+    hh = res.stats[res.stats["metric"] == cs.HANDHOLES]
+    m3.metric("Handholes A / B", f"{int(hh[name_a].iloc[0])} / {int(hh[name_b].iloc[0])}" if len(hh) else "-")
+    st.dataframe(res.stats, use_container_width=True)
+
+    def gj(feats, color):
+        rgb = _hex_to_rgb(color)
+        out = []
+        for f in feats:
+            g = f.geometry.to_geojson() if f.geometry else None
+            if g:
+                out.append({"type": "Feature", "geometry": g, "properties": {
+                    "name": f.name, "len": f"{f.geometry.length_feet:,.0f} ft" if f.geometry.length_m else "",
+                    "rgb": rgb}})
+        return {"type": "FeatureCollection", "features": out}
+
+    col = "[properties.rgb[0], properties.rgb[1], properties.rgb[2], 255]"
+    layers = [pdk.Layer("GeoJsonLayer", gj(f, c), pickable=True, stroked=True, filled=True, get_line_color=col,
+                        get_fill_color="[properties.rgb[0], properties.rgb[1], properties.rgb[2], 80]",
+                        get_point_radius=3, point_radius_min_pixels=4, line_width_min_pixels=3)
+              for f, c in ((res.a, cs.COLORS[0]), (res.b, cs.COLORS[1]))]
+    layers.append(pdk.Layer("PathLayer", [{"path": [list(p) for p in res.cut_lonlat]}], get_path="path",
+                            get_color=[255, 200, 0, 255], width_min_pixels=3, get_width=2))
+    b = gis.bounds_of(vis)
+    if b:
+        span = max(b[2] - b[0], b[3] - b[1], 1e-5)
+        st.pydeck_chart(pdk.Deck(layers=layers, map_style="road", tooltip={"html": "<b>{name}</b> {len}"},
+                                 initial_view_state=pdk.ViewState(longitude=(b[0] + b[2]) / 2,
+                                                                  latitude=(b[1] + b[3]) / 2,
+                                                                  zoom=max(1.0, min(19.0, math.log2(360 / span) - 1)))),
+                        use_container_width=True)
+    st.markdown(f"<span style='color:{cs.COLORS[0]}'>■</span> {name_a} &nbsp; "
+                f"<span style='color:{cs.COLORS[1]}'>■</span> {name_b} &nbsp; "
+                f"<span style='color:#ffc800'>■</span> boundary", unsafe_allow_html=True)
+
+    d1, d2, d3, d4 = st.columns(4)
+    d1.download_button(f"⬇️ {name_a} KML", cs.contractor_kml(res.a, name_a, cs.COLORS[0], stem),
+                       f"{stem}_contractor1.kml".replace(" ", "_"), "application/vnd.google-earth.kml+xml")
+    d2.download_button(f"⬇️ {name_b} KML", cs.contractor_kml(res.b, name_b, cs.COLORS[1], stem),
+                       f"{stem}_contractor2.kml".replace(" ", "_"), "application/vnd.google-earth.kml+xml")
+    d3.download_button("⬇️ Overview KML", cs.overview_kml(res, stem), f"{stem}_split_overview.kml",
+                       "application/vnd.google-earth.kml+xml")
+    d4.download_button("📦 Everything (.zip)", cs.bundle_zip(res, stem), f"{stem}_contractor_split.zip",
+                       "application/zip")

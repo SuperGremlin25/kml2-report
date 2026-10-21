@@ -347,7 +347,7 @@ if st.session_state.get('geometry_sig') != _files_sig:
     st.session_state.geometry_sig = _files_sig
     st.session_state.geometry_features = None
     st.session_state.geometry_summary = None
-    for _k in ('wb_buffer', 'wb_qa_res'):
+    for _k in ('wb_buffer', 'wb_qa_res', 'sp_cands', 'sp_params'):
         st.session_state.pop(_k, None)
 
 tab_gis, tab_preview, tab_summary, tab_report, tab_download, tab_inject, tab_geometry = st.tabs(

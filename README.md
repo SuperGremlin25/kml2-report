@@ -4,7 +4,7 @@ emoji: 🗺️
 colorFrom: blue
 colorTo: indigo
 sdk: streamlit
-sdk_version: 1.41.0
+sdk_version: 1.66.0
 app_file: streamlit_app.py
 pinned: false
 license: mit
@@ -318,3 +318,14 @@ The Streamlit app now opens on a **GIS Workbench** tab:
 - **Export** – GeoJSON, clean KML, Shapefile (.zip with .prj), AutoCAD DXF (layers = KML folders, written in feet)
 
 Parser hardening: spaces inside coordinates (`-96.0, 29.0, 0`), bad tuples (skipped with a warning, never fatal), polygon holes, `LinearRing`, `gx:Track`, `MultiGeometry` parts, nested folder paths, `Style`/`StyleMap` colors, `ExtendedData`, KMZ detection by content, and files with undefined namespace prefixes.
+
+### Contractor Split
+
+**GIS Workbench → 👷 Contractor Split** divides a build between two contractors and exports a clean KML for each.
+
+- A straight cut (best of 72 directions, or force North-South / East-West) separates the project into two contiguous areas. Every candidate is scored on total footage, duct-feet (footage × ducts in the package), footage per duct size, handholes and other assets (poles, cabinets, splice cases).
+- Lines crossing the boundary are cut exactly there (altitude interpolated), so each contractor's footage is exact. Turn that off to hand out whole segments only.
+- Adjust the split (e.g. 60/40), the balance weights, or pick one of the alternative cuts.
+- Download **Contractor A / B KML** (only their features, color-coded, with footage in each popup; cut lines are marked and their stale length attribute removed), an overview KML showing both plus the boundary, and a zip with a summary CSV.
+
+Balance is best-effort: one straight cut cannot equalize every quantity at once, so the summary table shows exactly what each contractor gets.
