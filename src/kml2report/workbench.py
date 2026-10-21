@@ -268,10 +268,14 @@ def _render_split(vis: list[Feature], stem: str) -> None:
 
     st.caption("Divide the build into two contiguous contractor areas with matched footage, duct and handholes, "
                "then export a clean KML for each contractor containing only their work.")
+    mode = st.radio("How should the work be handed out?",
+                    ["All of it, split between the two contractors", "In releases - a set footage at a time"],
+                    horizontal=True, key="sp_mode")
+    releases_mode = mode.startswith("In releases")
     c1, c2 = st.columns(2)
     name_a = c1.text_input("Contractor 1", "Contractor A", key="sp_na")
     name_b = c2.text_input("Contractor 2", "Contractor B", key="sp_nb")
-    share = st.slider(f"{name_a} share of the work (%)", 30, 70, 50, key="sp_share") / 100
+    share = 0.5 if releases_mode else st.slider(f"{name_a} share of the work (%)", 30, 70, 50, key="sp_share") / 100
     clip = st.checkbox("Cut lines exactly at the boundary (equalizes footage precisely)", True, key="sp_clip",
                        help="Off = whole segments go to whichever side holds their center; no line is cut.")
     with st.expander("What matters most? (balance weights)"):
@@ -307,13 +311,16 @@ def _render_split(vis: list[Feature], stem: str) -> None:
     for f in vis:
         sig.update(repr((f.name, f.layer, f.geometry.to_wkt() if f.geometry else "", sorted(f.extended_data.items()),
                          sorted(f.parsed_attributes.items()), f.raw_description)).encode())
+    weights = {"total": w_total, "duct": w_duct, "handholes": w_hh, "per_size": w_size, "other_assets": w_oth,
+               "difficulty": w_diff, "dense": w_dense}
     params = (sig.hexdigest(), name_a, name_b, share, clip, w_total, w_duct, w_hh, w_size, w_oth, w_diff, w_dense,
               direction, auto, factor, tuple(hard_layers), hard_mult)
+    if releases_mode:
+        _render_releases(vis, stem, params, (name_a, name_b), clip, weights, fixed, difficulty)
+        return
     if st.button("⚖️ Split into two contractors", type="primary", key="sp_go"):
         try:
             cs.validate_names((name_a, name_b))
-            weights = {"total": w_total, "duct": w_duct, "handholes": w_hh, "per_size": w_size, "other_assets": w_oth,
-                       "difficulty": w_diff, "dense": w_dense}
             cands, _ = cs.search_splits(vis, share, clip, weights, fixed_angle=fixed, difficulty=difficulty)
             st.session_state["sp_cands"] = cands
             st.session_state["sp_params"] = params
@@ -391,3 +398,82 @@ def _render_split(vis: list[Feature], stem: str) -> None:
     d3.download_button("⬇️ Overview", file_o, f"{stem}_split_overview{ext_o}", cs.MIME[ext_o])
     d4.download_button("📦 Everything (.zip)", cs.bundle_zip(res, stem, recolor), f"{stem}_contractor_split.zip",
                        "application/zip")
+
+
+def _render_releases(vis: list[Feature], stem: str, base_params: tuple, names: tuple, clip: bool, weights: dict,
+                     fixed: Optional[float], difficulty) -> None:
+    """Hand the work out a set footage at a time: release 1, then release 2 from where 1 stopped, and so on."""
+    import pydeck as pdk
+    from kml2report import contractor_split as cs
+
+    st.caption("Each release gives **each** contractor the footage below, picked with the same automatic balancing "
+               "(fair share of the hard work, handholes and duct sizes). Release 2 starts where release 1 stopped.")
+    c1, c2, c3 = st.columns(3)
+    per = c1.number_input("Footage per contractor per release (ft)", 500, 200000, 5000, 500, key="rl_per")
+    start_label = c2.selectbox("Hand out work starting from", ["Auto (west or south end)", "West end", "East end",
+                                                               "South end", "North end"], key="rl_start")
+    upto = int(c3.number_input("Plan releases up to", 1, 200, 3, 1, key="rl_upto",
+                               help="Earlier releases never change when you plan more of them."))
+    start = {"Auto (west or south end)": "auto", "West end": "west", "East end": "east", "South end": "south",
+             "North end": "north"}[start_label]
+    params = (base_params, per, start, upto)
+    if st.button("📦 Plan releases", type="primary", key="rl_go"):
+        try:
+            with st.spinner("Planning releases..."):
+                plan = cs.plan_releases(vis, float(per), start, max_releases=upto, clip=clip, weights=weights,
+                                        fixed_angle=fixed, names=names, difficulty=difficulty)
+            st.session_state["rl_plan"], st.session_state["rl_params"] = plan, params
+        except ValueError as exc:
+            st.error(str(exc))
+            return
+    plan = st.session_state.get("rl_plan")
+    if plan is None or st.session_state.get("rl_params") != params:
+        return
+    for w in plan.warnings:
+        st.warning(w)
+    left_ft = sum(f.geometry.length_feet for f in plan.remaining if f.geometry)
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Releases planned", len(plan.releases))
+    m2.metric("Handed out so far (each)", f"{plan.overview.iloc[-1, plan.overview.columns.get_loc(f'{plan.names[0]} total so far ft')]:,.0f} ft")
+    m3.metric("Not yet released", f"{left_ft:,.0f} ft")
+    st.dataframe(plan.overview, use_container_width=True)
+
+    rel_no = int(st.number_input("Show release", 1, len(plan.releases), 1, 1, key="rl_show"))
+    rel = plan.releases[rel_no - 1]
+    st.dataframe(rel.split.stats, use_container_width=True)
+
+    def layer(feats, rgb, alpha, wide=3):
+        feats_json = [{"type": "Feature", "geometry": f.geometry.to_geojson(),
+                       "properties": {"name": f.name, "len": f"{f.geometry.length_feet:,.0f} ft" if f.geometry.length_m else ""}}
+                      for f in feats if f.geometry and f.geometry.to_geojson()]
+        return pdk.Layer("GeoJsonLayer", {"type": "FeatureCollection", "features": feats_json}, pickable=True,
+                         stroked=True, filled=True, get_line_color=rgb + [alpha], get_fill_color=rgb + [alpha // 3],
+                         get_point_radius=3, point_radius_min_pixels=4, line_width_min_pixels=wide)
+
+    layers = [layer(plan.remaining, [170, 170, 170], 140, 2)]
+    for r in plan.releases:
+        if r.number < rel_no:
+            layers += [layer(r.a, _hex_to_rgb(cs.COLORS[0]), 70, 2), layer(r.b, _hex_to_rgb(cs.COLORS[1]), 70, 2)]
+    layers += [layer(rel.a, _hex_to_rgb(cs.COLORS[0]), 255, 4), layer(rel.b, _hex_to_rgb(cs.COLORS[1]), 255, 4)]
+    later = [f for r in plan.releases if r.number > rel_no for f in r.a + r.b]
+    layers.insert(1, layer(later, [120, 120, 120], 120, 2))
+    b = gis.bounds_of(vis)
+    if b:
+        span = max(b[2] - b[0], b[3] - b[1], 1e-5)
+        st.pydeck_chart(pdk.Deck(layers=layers, map_style="road", tooltip={"html": "<b>{name}</b> {len}"},
+                                 initial_view_state=pdk.ViewState(longitude=(b[0] + b[2]) / 2,
+                                                                  latitude=(b[1] + b[3]) / 2,
+                                                                  zoom=max(1.0, min(19.0, math.log2(360 / span) - 1)))),
+                        use_container_width=True)
+    st.markdown(f"<span style='color:{cs.COLORS[0]}'>■</span> {plan.names[0]} &nbsp; "
+                f"<span style='color:{cs.COLORS[1]}'>■</span> {plan.names[1]} &nbsp; "
+                "<span style='color:#aaa'>■</span> not yet released / other releases (faded)", unsafe_allow_html=True)
+
+    fa, ea = cs.release_file(plan, rel_no, 0, stem)
+    fb, eb = cs.release_file(plan, rel_no, 1, stem)
+    d1, d2, d3 = st.columns(3)
+    d1.download_button(f"⬇️ Release {rel_no} - {plan.names[0]}", fa, f"{stem}_release{rel_no:02d}_contractor1{ea}",
+                       cs.MIME[ea])
+    d2.download_button(f"⬇️ Release {rel_no} - {plan.names[1]}", fb, f"{stem}_release{rel_no:02d}_contractor2{eb}",
+                       cs.MIME[eb])
+    d3.download_button("📦 All releases (.zip)", cs.releases_zip(plan, stem), f"{stem}_releases.zip", "application/zip")

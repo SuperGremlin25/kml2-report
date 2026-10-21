@@ -17,6 +17,7 @@ Contractor KMLs contain only that contractor's features.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import io
 import math
 import re
@@ -157,6 +158,9 @@ class Difficulty:
     hard_layers: tuple = ()
     hard_multiplier: float = 2.0
     radius_ft: float = 1000.0
+    # Density measured on the WHOLE project, set by plan_releases so a slice inside the city is still judged
+    # against the project's typical density (otherwise a slice that is all city would look "normal").
+    field: object = dataclasses.field(default=None, repr=False, compare=False)
 
     @property
     def enabled(self) -> bool:
@@ -176,36 +180,49 @@ def _weighted_median(values: np.ndarray, weights: np.ndarray) -> float:
     return float(values[order][np.searchsorted(cum, cum[-1] / 2)])
 
 
-def _density_profile(mid: np.ndarray, ft: np.ndarray, vert_xy: np.ndarray, pts_xy: np.ndarray, radius_ft: float,
-                     factor: float) -> tuple[np.ndarray, np.ndarray]:
-    """(multiplier, dense flag) for every line piece from local density of turns and assets.
+class _DensityField:
+    """Local density of turns (line vertices, weight 1) and assets (points, weight 2): how many fall in the 3x3 grid
+    cells around a spot.  ``ref`` is the length-weighted median over the pieces it was calibrated on, so densities
+    are always compared with the project's own typical density."""
 
-    Density = line vertices (weight 1) + point assets (weight 2) in the 3x3 grid cells around the piece.  It is
-    compared with the file's own typical density (length-weighted median), so a uniformly rural file stays at 1x
-    and only genuinely denser areas are marked: 1x up to the typical density, ``factor`` x at 4x typical.
-    """
-    n = len(mid)
-    if n == 0:
-        return np.ones(0), np.zeros(0, dtype=bool)
-    cell = radius_ft / M_TO_FT
-    pts = np.vstack([vert_xy, pts_xy]) if len(pts_xy) else vert_xy
-    wts = np.concatenate([np.ones(len(vert_xy)), np.full(len(pts_xy), 2.0)])
-    off, big = 1 << 20, 1 << 22
-    cells = np.floor(pts / cell).astype(np.int64)
-    uniq, inv = np.unique((cells[:, 0] + off) * big + (cells[:, 1] + off), return_inverse=True)
-    sums = np.bincount(inv, weights=wts)
-    mc = np.floor(mid / cell).astype(np.int64)
-    dens = np.zeros(n)
-    for dx in (-1, 0, 1):
-        for dy in (-1, 0, 1):
-            k = (mc[:, 0] + dx + off) * big + (mc[:, 1] + dy + off)
-            idx = np.minimum(np.searchsorted(uniq, k), len(uniq) - 1)
-            dens += np.where(uniq[idx] == k, sums[idx], 0.0)
-    pos = dens > 0
-    ref = _weighted_median(dens[pos], ft[pos]) if pos.any() else 1.0
-    r = dens / max(ref, 1e-9)
-    mult = 1.0 + (factor - 1.0) * np.clip((r - 1.0) / 3.0, 0.0, 1.0)
-    return mult, r >= 2.0
+    def __init__(self, vert_xy: np.ndarray, pts_xy: np.ndarray, radius_ft: float, epsg: str):
+        self.cell = radius_ft / M_TO_FT
+        self.epsg = epsg
+        self.off, self.big = 1 << 20, 1 << 22
+        pts = np.vstack([vert_xy, pts_xy]) if len(pts_xy) else vert_xy
+        wts = np.concatenate([np.ones(len(vert_xy)), np.full(len(pts_xy), 2.0)])
+        cells = np.floor(pts / self.cell).astype(np.int64)
+        self.uniq, inv = np.unique((cells[:, 0] + self.off) * self.big + (cells[:, 1] + self.off), return_inverse=True)
+        self.sums = np.bincount(inv, weights=wts)
+        self.ref = 1.0
+
+    def density(self, mid: np.ndarray) -> np.ndarray:
+        mc = np.floor(mid / self.cell).astype(np.int64)
+        dens = np.zeros(len(mid))
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                k = (mc[:, 0] + dx + self.off) * self.big + (mc[:, 1] + dy + self.off)
+                idx = np.minimum(np.searchsorted(self.uniq, k), len(self.uniq) - 1)
+                dens += np.where(self.uniq[idx] == k, self.sums[idx], 0.0)
+        return dens
+
+    def calibrate(self, mid: np.ndarray, ft: np.ndarray) -> "_DensityField":
+        dens = self.density(mid)
+        pos = dens > 0
+        self.ref = _weighted_median(dens[pos], ft[pos]) if pos.any() else 1.0
+        return self
+
+    def profile(self, mid: np.ndarray, factor: float) -> tuple[np.ndarray, np.ndarray]:
+        """(multiplier, dense flag): 1x up to the typical density, ``factor`` x at 4x typical; dense from 2x."""
+        r = self.density(mid) / max(self.ref, 1e-9)
+        return 1.0 + (factor - 1.0) * np.clip((r - 1.0) / 3.0, 0.0, 1.0), r >= 2.0
+
+
+def build_density_field(features: list[Feature], radius_ft: float = 1000.0) -> _DensityField:
+    """Density field of a whole project (used so every release is judged against the same yardstick)."""
+    a = _prepare(features, Difficulty(auto=False, radius_ft=radius_ft))
+    field = _DensityField(a.vert, a.pt, radius_ft, a.epsg)
+    return field.calibrate((a.seg[:, :2] + a.seg[:, 2:]) / 2, a.w_seg[:, 0])
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +240,7 @@ class _Atoms:
     w_cen: np.ndarray    # (n_feat, m)
     total: np.ndarray    # (m,)
     epsg: str = ""
+    vert: Optional[np.ndarray] = None     # (n_vert, 2) projected line vertices
     seg_ll: Optional[np.ndarray] = None   # (n_seg, 4) lon0,lat0,lon1,lat1 (for display)
     mult: Optional[np.ndarray] = None     # (n_seg,) difficulty multiplier
     dense: Optional[np.ndarray] = None    # (n_seg,) bool
@@ -294,11 +312,19 @@ def _prepare(features: list[Feature], difficulty: Optional[Difficulty] = None) -
                np.array(pts).reshape(-1, 2), np.array(w_pt).reshape(-1, m),
                np.array(cen).reshape(-1, 2), np.array(w_cen).reshape(-1, m), np.zeros(m), epsg)
     a.seg_ll = np.vstack(seg_ll) if seg_ll else np.zeros((0, 4))
+    a.vert = np.vstack(vert) if vert else np.zeros((0, 2))
     if difficulty.enabled and len(a.seg):
         ft = a.w_seg[:, col[TOTAL]]
         mid = (a.seg[:, :2] + a.seg[:, 2:]) / 2
         if difficulty.auto:
-            mult, dense = _density_profile(mid, ft, np.vstack(vert), a.pt, difficulty.radius_ft, difficulty.factor)
+            field = difficulty.field
+            if field is None:  # a stand-alone split measures density on its own data
+                field = _DensityField(a.vert, a.pt, difficulty.radius_ft, epsg).calibrate(mid, ft)
+            elif field.epsg != epsg:  # the whole project may sit in another UTM zone than this slice
+                to_field = transformer(epsg, field.epsg)
+                mx, my = to_field.transform(mid[:, 0], mid[:, 1])
+                mid = np.column_stack([np.asarray(mx), np.asarray(my)])
+            mult, dense = field.profile(mid, difficulty.factor)
         else:
             mult, dense = np.ones(len(ft)), np.zeros(len(ft), dtype=bool)
         is_hard = np.concatenate(seg_hard)
@@ -530,15 +556,25 @@ def validate_names(names: tuple[str, str]) -> tuple[str, str]:
     return a, b
 
 
-def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True,
-                names: tuple[str, str] = ("Contractor A", "Contractor B"),
-                difficulty: Optional[Difficulty] = None) -> SplitResult:
-    """Divide ``features`` at the chosen cut into two sets of (new) Feature objects."""
-    names = validate_names(names)
+@dataclass
+class _CutContext:
+    fwd: object
+    back: object
+    centre: tuple
+    cut_lonlat: list
+
+
+def cut_features(features: list[Feature], angle_deg: float, offset_m: float, clip: bool = True,
+                 labels: Optional[tuple[str, str]] = None, label_key: str = "Contractor",
+                 note: str = "Cut at contractor boundary") -> tuple[list[Feature], list[Feature], _CutContext]:
+    """Divide ``features`` along one straight cut: side A is everything with signed distance < offset along the
+    normal at ``angle_deg`` (grid east = 0, grid north = 90).  Lines that cross are cut exactly there (altitude
+    interpolated; the cut pieces drop their now-stale length attributes and carry ``note``).  Returns new Feature
+    objects, so the inputs are untouched."""
     c = centroid_lonlat(features)
     epsg = f"EPSG:{utm_epsg(*c)}"
     fwd, back = transformer(WGS84, epsg), transformer(epsg, WGS84)
-    th = math.radians(cand.angle_deg)
+    th = math.radians(angle_deg)
     nx, ny = math.cos(th), math.sin(th)
 
     def project(coords: list[Coord]) -> np.ndarray:
@@ -547,13 +583,12 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
 
     def dist(coords: list[Coord]) -> np.ndarray:
         xy = project(coords)
-        return xy[:, 0] * nx + xy[:, 1] * ny - cand.offset_m
+        return xy[:, 0] * nx + xy[:, 1] * ny - offset_m
 
     side_a: list[Feature] = []
     side_b: list[Feature] = []
-    all_names = metric_names(features)
 
-    def clone(f: Feature, geom: Geometry, contractor: str, cut: bool, original_ft: float) -> Feature:
+    def clone(f: Feature, geom: Geometry, label: Optional[str], cut: bool, original_ft: float) -> Feature:
         n = copy.copy(f)
         n.geometry = geom
         n.extended_data = dict(f.extended_data)
@@ -567,8 +602,9 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
             for d in (n.extended_data, n.parsed_attributes):  # stale: these describe the uncut line
                 for k in [k for k in d if k.lower() in LENGTH_KEYS]:
                     del d[k]
-            n.extended_data["Split_Note"] = f"Cut at contractor boundary (original length {original_ft:,.1f} ft)"
-        n.extended_data["Contractor"] = contractor
+            n.extended_data["Split_Note"] = f"{note} (original length {original_ft:,.1f} ft)"
+        if label is not None:
+            n.extended_data[label_key] = label
         if geom.length_m:
             n.extended_data["Footage_ft"] = f"{geom.length_feet:.1f}"
         return n
@@ -589,7 +625,7 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
                 continue
             if clip and p.geometry_type in ("LineString", "Track") and len(p.coordinates) >= 2:
                 xy = project(p.coordinates)
-                ra, rb = _clip_polyline(p.coordinates, xy[:, 0] * nx + xy[:, 1] * ny - cand.offset_m, xy, back)
+                ra, rb = _clip_polyline(p.coordinates, xy[:, 0] * nx + xy[:, 1] * ny - offset_m, xy, back)
                 parts_a += [Geometry("LineString", r) for r in ra]
                 parts_b += [Geometry("LineString", r) for r in rb]
             else:
@@ -601,13 +637,14 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
                 (parts_a if to_a else parts_b).append(p)
         ga, gb = _compose(parts_a), _compose(parts_b)
         cut = ga is not None and gb is not None and g.length_m > 0
-        for geom, bucket, who in ((ga, side_a, names[0]), (gb, side_b, names[1])):
+        for geom, bucket, who in ((ga, side_a, labels[0] if labels else None),
+                                  (gb, side_b, labels[1] if labels else None)):
             if geom is not None:
                 bucket.append(clone(f, geom, who, cut, g.length_feet))
 
     # cut line for display: through the data centre, spanning the data extent
     cx, cy = fwd.transform(c[0], c[1])
-    along = cx * nx + cy * ny - cand.offset_m
+    along = cx * nx + cy * ny - offset_m
     px, py = cx - along * nx, cy - along * ny
     bx = [co[0] for f in features if f.geometry for co in f.geometry.coordinates]
     by = [co[1] for f in features if f.geometry for co in f.geometry.coordinates]
@@ -616,6 +653,18 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
     tx, ty = -ny, nx
     p1 = back.transform(px - half * tx, py - half * ty)
     p2 = back.transform(px + half * tx, py + half * ty)
+    return side_a, side_b, _CutContext(fwd, back, c, [(p1[0], p1[1]), (p2[0], p2[1])])
+
+
+def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True,
+                names: tuple[str, str] = ("Contractor A", "Contractor B"),
+                difficulty: Optional[Difficulty] = None) -> SplitResult:
+    """Divide ``features`` at the chosen cut into two sets of (new) Feature objects."""
+    names = validate_names(names)
+    th = math.radians(cand.angle_deg)
+    all_names = metric_names(features)
+    side_a, side_b, ctx = cut_features(features, cand.angle_deg, cand.offset_m, clip, names)
+    p1, p2 = ctx.cut_lonlat
 
     ma, mb = metrics_of(side_a, all_names), metrics_of(side_b, all_names)
     rows = []
@@ -635,7 +684,7 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
                          "difference": round(va - vb, 1),
                          f"{names[0]} share %": round(100 * va / (va + vb), 1) if va + vb else None})
     return SplitResult(side_a, side_b, cand.angle_deg, cand.offset_m, cand.score,
-                       [(p1[0], p1[1]), (p2[0], p2[1])], pd.DataFrame(rows), clip, names)
+                       [p1, p2], pd.DataFrame(rows), clip, names)
 
 
 def split_contractors(features: list[Feature], share_a: float = 0.5, clip: bool = True,
@@ -659,6 +708,143 @@ def difficulty_segments(features: list[Feature], difficulty: Difficulty, limit: 
         idx = np.linspace(0, len(idx) - 1, limit).astype(int)
     return [{"path": [[float(r[0]), float(r[1])], [float(r[2]), float(r[3])]], "mult": float(a.mult[i]),
              "dense": bool(a.dense[i])} for i, r in zip(idx, a.seg_ll[idx])]
+
+
+# ---------------------------------------------------------------------------
+# Releases: hand out the work a few thousand feet at a time
+# ---------------------------------------------------------------------------
+
+START_ANGLES = {"west": 0.0, "south": 90.0, "east": 180.0, "north": 270.0}
+
+
+@dataclass
+class Release:
+    number: int
+    a: list[Feature]
+    b: list[Feature]
+    split: SplitResult          # how this release was balanced between the two contractors
+    final: bool = False         # the last release takes whatever is left, so it may be smaller
+
+
+@dataclass
+class ReleasePlan:
+    releases: list[Release]
+    remaining: list[Feature]    # work not yet handed out
+    per_contractor_ft: float
+    start: str
+    names: tuple
+    overview: pd.DataFrame      # one row per release
+    detail: pd.DataFrame        # every metric, every release
+    warnings: list[str] = field(default_factory=list)
+
+
+def _start_angle(features: list[Feature], start: str, start_point: Optional[tuple]) -> float:
+    """Direction the work is handed out in (the normal of the frontier cut).  'auto' sweeps along the longer
+    side of what is left, starting from its west / south end."""
+    start = (start or "auto").lower()
+    if start in START_ANGLES:
+        return START_ANGLES[start]
+    a = _prepare(features, Difficulty(auto=False))
+    c = centroid_lonlat(features)
+    if start == "point" and start_point is not None:
+        fwd = transformer(WGS84, a.epsg)
+        px, py = fwd.transform(start_point[0], start_point[1])
+        cx, cy = fwd.transform(c[0], c[1])
+        if math.hypot(cx - px, cy - py) > 1.0:
+            return math.degrees(math.atan2(cy - py, cx - px)) % 360
+    xs = np.concatenate([a.seg[:, [0, 2]].ravel(), a.pt[:, 0]]) if len(a.seg) or len(a.pt) else a.cen[:, 0]
+    ys = np.concatenate([a.seg[:, [1, 3]].ravel(), a.pt[:, 1]]) if len(a.seg) or len(a.pt) else a.cen[:, 1]
+    return 0.0 if (xs.max() - xs.min()) >= (ys.max() - ys.min()) else 90.0
+
+
+def _frontier_offset(features: list[Feature], angle_deg: float, target_ft: float) -> Optional[float]:
+    """Offset of the straight cut that leaves exactly ``target_ft`` of line footage on side A (None = take all)."""
+    a = _prepare(features, Difficulty(auto=False))
+    total = float(a.total[0])
+    if total <= target_ft * 1.0001:
+        return None
+    th = math.radians(angle_deg)
+    nx, ny = math.cos(th), math.sin(th)
+    proj = np.concatenate([a.seg[:, [0, 2]].ravel() * nx + a.seg[:, [1, 3]].ravel() * ny]) if len(a.seg) else np.zeros(1)
+    lo, hi = float(proj.min()), float(proj.max())
+    for _ in range(60):  # footage on side A only grows with the offset, so bisection is exact enough
+        mid = (lo + hi) / 2
+        got = float(_totals(a, th, np.array([mid]), True)[0][0, 0])
+        lo, hi = (mid, hi) if got < target_ft else (lo, mid)
+    return (lo + hi) / 2
+
+
+def plan_releases(features: list[Feature], per_contractor_ft: float = 5000.0, start: str = "auto",
+                  start_point: Optional[tuple] = None, max_releases: Optional[int] = None, clip: bool = True,
+                  weights: Optional[dict] = None, fixed_angle: Optional[float] = None,
+                  names: tuple[str, str] = ("Contractor A", "Contractor B"),
+                  difficulty: Optional[Difficulty] = None) -> ReleasePlan:
+    """Hand the work out ``per_contractor_ft`` at a time instead of all at once.
+
+    Each release first takes the next 2 x ``per_contractor_ft`` of line footage from the frontier of the
+    work that is still unassigned (swept from the ``start`` end: auto / west / east / south / north / point), cutting
+    a line exactly where the footage runs out.  That slice is then divided between the two contractors with the same
+    automatic balancing as the full split, so each gets the requested footage with a fair share of the hard work,
+    handholes and duct sizes.  The next release starts where the last stopped.  The last release takes what is left.
+    The result is deterministic: asking for more releases never changes the earlier ones.
+    """
+    names = validate_names(names)
+    if per_contractor_ft <= 0:
+        raise ValueError("The footage per contractor per release must be above zero.")
+    difficulty = difficulty if difficulty is not None else Difficulty()
+    remaining = [f for f in features if f.geometry and not f.geometry.is_empty]
+    if not remaining:
+        raise ValueError("No features with coordinates to hand out.")
+    if difficulty.auto and difficulty.field is None:
+        difficulty = dataclasses.replace(difficulty, field=build_density_field(remaining, difficulty.radius_ft))
+    releases: list[Release] = []
+    warnings: list[str] = []
+    limit = max_releases if max_releases is not None else 500
+    while remaining and len(releases) < limit:
+        number = len(releases) + 1
+        theta = _start_angle(remaining, start, start_point)
+        offset = _frontier_offset(remaining, theta, 2 * per_contractor_ft)
+        if offset is None:
+            chunk, rest, final = remaining, [], True
+        else:
+            chunk, rest, _ = cut_features(remaining, theta, offset, clip=True, labels=None,
+                                          note="Cut at release boundary")
+            final = False
+            if not chunk or len(rest) == len(remaining):
+                warnings.append(f"Release {number}: could not find a boundary - stopped.")
+                break
+        try:
+            res = split_contractors(chunk, 0.5, clip, weights, fixed_angle, names, difficulty)
+        except ValueError as exc:
+            warnings.append(f"Release {number}: {exc} The remaining features carry no footage or assets to balance.")
+            break
+        for f in res.a + res.b:
+            f.extended_data["Release"] = str(number)
+        releases.append(Release(number, res.a, res.b, res, final))
+        remaining = rest
+    rows, long = [], []
+    cum_a = cum_b = 0.0
+    total_left = sum(f.geometry.length_feet for f in remaining)
+    stats0 = {r.number: r.split.stats.set_index("metric") for r in releases}
+    left = sum(f.geometry.length_feet for r in releases for f in r.a + r.b) + total_left
+    assigned = 0.0
+    for r in releases:
+        st = stats0[r.number]
+        fa, fb = float(st.loc[TOTAL, names[0]]), float(st.loc[TOTAL, names[1]])
+        cum_a, cum_b = cum_a + fa, cum_b + fb
+        assigned += fa + fb
+        row = {"release": r.number, f"{names[0]} ft": round(fa), f"{names[1]} ft": round(fb)}
+        for label, metric in (("difficulty-weighted ft", DIFFICULTY), ("dense-area ft", DENSE), ("handholes", HANDHOLES)):
+            if metric in st.index:
+                row[f"{names[0]} {label}"] = round(float(st.loc[metric, names[0]]))
+                row[f"{names[1]} {label}"] = round(float(st.loc[metric, names[1]]))
+        row[f"{names[0]} total so far ft"], row[f"{names[1]} total so far ft"] = round(cum_a), round(cum_b)
+        row["not yet released ft"] = round(max(left - assigned, 0.0))
+        rows.append(row)
+        long.append(st.reset_index().assign(release=r.number))
+    detail = pd.concat(long, ignore_index=True)[["release", "metric", names[0], names[1], "difference"]] if long \
+        else pd.DataFrame()
+    return ReleasePlan(releases, remaining, per_contractor_ft, start, names, pd.DataFrame(rows), detail, warnings)
 
 
 # ---------------------------------------------------------------------------
@@ -694,6 +880,26 @@ def overview_file(res: SplitResult, project: str = "", recolor: bool = False) ->
         f"{project} - contractor split".strip(" -"), extra_xml=cut_xml)
 
 
+def release_file(plan: ReleasePlan, number: int, who: int, project: str = "") -> tuple[bytes, str]:
+    """One contractor's work for one release."""
+    rel = next(r for r in plan.releases if r.number == number)
+    feats = rel.a if who == 0 else rel.b
+    title = f"{project} - Release {number} - {plan.names[who]}".strip(" -")
+    return geoexport.to_kml_package([(f"Release {number}", feats, None)], title, wrap_groups=False)
+
+
+def contractor_all_releases_file(plan: ReleasePlan, who: int, project: str = "") -> tuple[bytes, str]:
+    """Everything one contractor has been handed so far, a folder per release."""
+    groups = [(f"Release {r.number}", r.a if who == 0 else r.b, None) for r in plan.releases]
+    return geoexport.to_kml_package(groups, f"{project} - {plan.names[who]} - all releases".strip(" -"))
+
+
+def unassigned_file(plan: ReleasePlan, project: str = "") -> tuple[bytes, str]:
+    """The work not yet handed out."""
+    return geoexport.to_kml_package([("Not yet released", plan.remaining, None)],
+                                    f"{project} - not yet released".strip(" -"), wrap_groups=False)
+
+
 def _safe(s: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", s).strip("_") or "contractor"
 
@@ -708,4 +914,24 @@ def bundle_zip(res: SplitResult, project: str = "project", recolor_overview: boo
         data, ext = overview_file(res, project, recolor_overview)
         z.writestr(f"{_safe(project)}_overview{ext}", data)
         z.writestr(f"{_safe(project)}_split_summary.csv", res.stats.to_csv(index=False))
+    return buf.getvalue()
+
+
+def releases_zip(plan: ReleasePlan, project: str = "project") -> bytes:
+    """Every release for both contractors, each contractor's running total, the unreleased work and a summary."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        base = _safe(project)
+        for r in plan.releases:
+            for who in (0, 1):
+                data, ext = release_file(plan, r.number, who, project)
+                z.writestr(f"{base}_release{r.number:02d}_contractor{who + 1}_{_safe(plan.names[who])}{ext}", data)
+        for who in (0, 1):
+            data, ext = contractor_all_releases_file(plan, who, project)
+            z.writestr(f"{base}_contractor{who + 1}_{_safe(plan.names[who])}_all_releases{ext}", data)
+        if plan.remaining:
+            data, ext = unassigned_file(plan, project)
+            z.writestr(f"{base}_not_yet_released{ext}", data)
+        z.writestr(f"{base}_release_summary.csv", plan.overview.to_csv(index=False))
+        z.writestr(f"{base}_release_detail.csv", plan.detail.to_csv(index=False))
     return buf.getvalue()

@@ -33,7 +33,7 @@ import streamlit as st
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="KML Field Report Generator",
+    page_title="KML2 Report - Construction GIS",
     page_icon="🗺️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -58,10 +58,10 @@ _NOMENCLATURE_NOTE = (
 # Sidebar
 # ---------------------------------------------------------------------------
 
-st.sidebar.title("🗺️ KML Field Report Generator")
+st.sidebar.title("🗺️ KML2 Report")
 st.sidebar.markdown(
-    "Upload one or more KML / KMZ files to parse field data, generate a "
-    "location-intelligent summary, and download reports."
+    "Construction GIS for KML / KMZ. Upload your Google Earth files to measure them, "
+    "plan the build, split the work between contractors, and export clean files."
 )
 
 uploaded_files = st.sidebar.file_uploader(
@@ -115,10 +115,10 @@ st.sidebar.markdown("---")
 st.sidebar.markdown(
     "**Workflow:**\n"
     "1. Upload KML/KMZ file(s)\n"
-    "2. *(Optional)* Upload town-config.json & pick a town\n"
-    "3. Preview parsed features\n"
-    "4. Generate field-notes summary\n"
-    "5. Download Markdown or Word (.docx)\n"
+    "2. **GIS Workbench** - map, tables, QA, analysis\n"
+    "3. **Contractor Split** - all at once or in releases\n"
+    "4. Export KML/KMZ, Shapefile, DXF, GeoJSON\n"
+    "5. *(Optional)* Field notes & reports - upload a town-config.json to filter by town\n"
 )
 
 
@@ -311,24 +311,56 @@ def rows_to_json(rows: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 
 if not uploaded_files:
-    st.title("KML Field Report Generator")
+    st.title("KML2 Report")
+    st.subheader("Construction GIS for KML / KMZ - measure it, plan it, hand it out.")
+    st.markdown(
+        "Upload one or more **KML** or **KMZ** files in the sidebar. Anything Google Earth saves works, "
+        "including messy files: bad coordinates are skipped with a warning instead of failing the whole file."
+    )
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(
+            """
+            #### 📐 Read & measure
+            - **Map**, attribute table and a **vertex table** with stations and State Plane / UTM coordinates
+            - Footage and area measured geodesically
+            - **QA / QC**: dangling ends, duplicates, self-intersections, length mismatches
+            - Duct / cable **takeoff** by size, plus handholes, poles and cabinets
+            """
+        )
+    with c2:
+        st.markdown(
+            """
+            #### 👷 Plan & assign
+            - **Split the build between two contractors** with matched footage, duct and handholes
+            - Balances the **hard work** too, so one crew doesn't get all the open runs and the other the city
+            - Or hand out work **in releases**: e.g. 5,000 ft to each contractor at a time, same auto-balancing
+            - Cut lines exactly at the boundary; adjust shares and weights
+            """
+        )
+    with c3:
+        st.markdown(
+            """
+            #### 📦 Export & deliver
+            - A clean **KML / KMZ per contractor**, with **your own icons, colors and folders** intact
+            - **Shapefile**, **AutoCAD DXF** and **GeoJSON**
+            - Summary tables and CSVs for each release
+            - Field-notes summaries and formal reports (the original tool) are still here
+            """
+        )
+
+    st.markdown("---")
     st.markdown(
         """
-        ### Get started
+        **How to use it**
 
-        Upload one or more **KML** or **KMZ** files using the sidebar to:
+        1. Upload your KML / KMZ in the sidebar.
+        2. Look around in the **🧭 GIS Workbench** - map, tables, statistics, QA.
+        3. Open **👷 Contractor Split**, pick *all at once* or *in releases*, and press the button.
+        4. Download each contractor's file (or the whole zip).
 
-        - **Preview** all parsed features in a searchable table
-        - **Generate** a location-intelligent field-notes summary with
-          coordinates, road names, bearings, and geographic corridors
-        - **Filter** by town using a portable town-config.json
-        - **Download** CSV, JSON, Markdown, or Word (.docx) reports
-        - **Analyze** geometry and aggregate duct/cable lengths by type
-
-        ---
-
-        *Professional KML/KMZ analysis tool for fiber construction projects. 
-        All processing runs server-side — your files are not stored permanently.*
+        *Files are processed on the server for your session and are not stored permanently.*
         """
     )
     st.stop()
