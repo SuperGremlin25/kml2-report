@@ -146,22 +146,28 @@ def parse_uploaded_files(file_data: list[tuple[bytes, str]]) -> list[dict]:
     return rows
 
 
+@st.cache_data(show_spinner="Reading Google Earth data...")
+def parse_report_multi(file_data: list[tuple[bytes, str]]):
+    """Parse uploads into (features, warnings); never raises on bad geometry."""
+    from kml2report.kml_parser import parse_bytes
+
+    features: list[Any] = []
+    warnings: list[str] = []
+    for fbytes, fname in file_data:
+        try:
+            rep = parse_bytes(fbytes, fname)
+        except Exception as exc:
+            warnings.append(f"{fname}: {exc}")
+            continue
+        features.extend(rep.features)
+        warnings.extend(rep.warnings)
+    return features, warnings
+
+
 @st.cache_data(show_spinner="Parsing features...")
 def parse_features_multi(file_data: list[tuple[bytes, str]]):
     """Parse uploaded files into Feature objects for the summarizer."""
-    from kml2report.kml_parser import parse_file
-
-    all_features: list[Any] = []
-    for fbytes, fname in file_data:
-        suffix = Path(fname).suffix.lower()
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-            tmp.write(fbytes)
-            tmp_path = Path(tmp.name)
-        try:
-            all_features.extend(parse_file(tmp_path))
-        finally:
-            tmp_path.unlink(missing_ok=True)
-    return all_features
+    return parse_report_multi(file_data)[0]
 
 
 def generate_summary(
@@ -330,9 +336,15 @@ file_data: list[tuple[bytes, str]] = [
 file_names = [f.name for f in uploaded_files]
 stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
 
-tab_preview, tab_summary, tab_report, tab_download, tab_inject, tab_geometry = st.tabs(
-    ["📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads", "🗺️ KML Injector", "📐 Geometry Analysis"]
+tab_gis, tab_preview, tab_summary, tab_report, tab_download, tab_inject, tab_geometry = st.tabs(
+    ["🧭 GIS Workbench", "📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads", "🗺️ KML Injector", "📐 Geometry Analysis"]
 )
+
+with tab_gis:
+    from kml2report import workbench
+
+    _wb_features, _wb_warnings = parse_report_multi(file_data)
+    workbench.render(_wb_features, _wb_warnings, stem)
 
 # ---------------------------------------------------------------------------
 # Tab 1: Data Preview
@@ -700,10 +712,15 @@ with tab_geometry:
     )
     
     # Check if we have features already loaded
-    if 'geometry_features' not in st.session_state:
+    # Reset cached analysis whenever a different set of files is uploaded
+    _files_sig = tuple((n, len(b)) for b, n in file_data)
+    if st.session_state.get('geometry_sig') != _files_sig:
+        st.session_state.geometry_sig = _files_sig
         st.session_state.geometry_features = None
         st.session_state.geometry_summary = None
-    
+        st.session_state.pop('wb_buffer', None)
+        st.session_state.pop('wb_qa_res', None)
+
     # Load features if not already loaded
     if st.session_state.geometry_features is None:
         with st.spinner("Loading features for geometry analysis..."):
