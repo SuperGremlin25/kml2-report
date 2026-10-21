@@ -1,5 +1,5 @@
 ---
-title: KML Field Report Generator
+title: KML2 Report - Construction GIS
 emoji: 🗺️
 colorFrom: blue
 colorTo: indigo
@@ -10,297 +10,134 @@ pinned: false
 license: mit
 ---
 
-# KML Field Report Generator — Complete Hugging Face Spaces Deployment Guide
+# KML2 Report — construction GIS for KML / KMZ
 
-Upload KML/KMZ files from field surveys and generate:
+Pull the data out of Google Earth files, measure it, plan the build, and hand each contractor a clean file with
+**their** work in it — icons, colors and folders exactly as you built them.
 
-- **Parsed data tables** — all features with attributes, coordinates, geometry
-- **Location-intelligent field notes summary** — grouped by theme and geographic corridor with geocoded roads, towns, bearings, and distances
-- **Talk-to-text auto-correction** — common speech-to-text errors are cleaned automatically
-- **Formal professional report** — LLM-generated CRO/HLD field assessment via Hugging Face Inference API
-
----
-
-## Prerequisites
-
-Before you start, make sure you have:
-
-1. **A Hugging Face account** — sign up free at [huggingface.co/join](https://huggingface.co/join)
-2. **A Hugging Face access token** — generate one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) (needed for the LLM formal report feature; the basic parsing/summary features work without it)
-3. **Git installed** on your machine — [git-scm.com/downloads](https://git-scm.com/downloads)
-4. **Python 3.9+** installed locally (only needed if you want to test locally first)
+Built for fiber / underground construction: duct footage, handholes, poles, stationing, as-built checks and crew
+assignments. Everything runs in the browser app (Streamlit) or from the command line.
 
 ---
 
-## Step 1: Create the Hugging Face Space
+## What it does
 
-1. Go to [huggingface.co/new-space](https://huggingface.co/new-space)
-2. Fill in the form:
-   - **Owner:** your username or organization
-   - **Space name:** `kml-field-report-generator` (or whatever you prefer)
-   - **License:** MIT
-   - **SDK:** select **Streamlit**
-   - **Visibility:** Private (recommended for proprietary field data) or Public
-3. Click **Create Space**
+### Read anything Google Earth can save
+- KML and KMZ (detected by content), KML 2.0–2.2, nested folders, multiple files at once
+- Points, lines, polygons **with holes**, `gx:Track`, multi-geometries, `ExtendedData`, styles, time stamps
+- Messy real-world files: coordinates like `-96.0, 29.0, 0`, bad tuples and undefined namespaces are skipped with a
+  warning, never fatal
 
-Hugging Face will show you a page with your new empty Space and its git URL. It will look like:
+### GIS Workbench (the first tab)
+| | |
+|---|---|
+| **Map** | Layers colored by folder, file style or geometry type; search; labels; length/area tooltips |
+| **Attribute table** | Every placemark with measured length and area, plus a **vertex table** (every coordinate with station and optional State Plane / UTM X-Y) |
+| **Statistics** | Per-folder totals; group by any attribute (a pivot table) |
+| **Analysis** | Buffers, points-in-polygons, nearest features, elevation profile |
+| **QA / QC** | Duplicate geometry, near-zero length, self-intersections, dangling ends, attribute-vs-measured length mismatch, invalid polygons |
+| **Contractor Split** | Divide the build between two contractors, all at once or **in releases** (see below) |
+| **Export** | GeoJSON, KML/KMZ (your styling intact), Shapefile (with `.prj`), AutoCAD DXF (layers = your folders, in feet) |
 
-```
-https://huggingface.co/spaces/YOUR_USERNAME/kml-field-report-generator
-```
+### Contractor split — fair work, not just equal footage
+Divide a build between two contractors so each gets matched **footage, duct, handholes and assets** *and* a fair
+share of the **hard work**:
+
+- **Auto-pick:** searches straight cuts at every angle and scores each on total footage, duct-feet (footage × ducts
+  in the package), footage per duct size, handholes, other assets, and difficulty. Lines crossing the boundary are
+  cut exactly there, so each contractor's footage is exact.
+- **Not all feet are equal:** long straight runs are easy; dense city work (many turns, short blocks, many
+  handholes) is not. Dense areas are detected from the file itself and count up to 2× (adjustable); you can also tag
+  folders you know are hard (city, rock, river crossing). The split balances the hard work too, so one contractor
+  doesn't get all the open runs while the other gets the city. A map shows what counts as difficult.
+- **Releases — a set footage at a time:** instead of handing out everything, give **each** contractor e.g. 5,000 ft per
+  release. Each release is picked with the same auto-balancing, release 2 starts where release 1 stopped, and
+  planning more releases never changes the earlier ones. Choose which end to start from.
+- **Output:** a clean KML (or KMZ) per contractor per release, each contractor's running total, the work not yet
+  released, an overview with the boundary, and a summary CSV — in one zip.
+
+### Your styling survives export
+Contractor files, overviews and the "KML (clean)" export reproduce each placemark exactly as you built it: icon,
+scale, label style, StyleMaps (normal / highlight), inline styles, visibility, folder nesting and your own
+description. If your icons are images packed inside a KMZ, the export is a **`.kmz` with those images included**.
+Online icons are kept as references. Nothing is recolored unless you tick *Recolor the overview by contractor*
+(overview only). Latitude and longitude stay in every placemark.
+
+### Quantity takeoff
+**Geometry Analysis** tab: duct/cable footage by size, multi-duct packages, aerial vs underground, point assets
+(poles, handholes, cabinets, splice cases), connected runs, and a check of measured length against the
+attribute length. Export to CSV / Excel.
+
+### Field reports (the original tool)
+Location-aware **field-notes summary** (roads, towns, bearings, corridors, speech-to-text cleanup),
+an LLM-written **formal report** (optional, Hugging Face Inference API) and the **KML Note Injector** that
+writes field notes into a design file. Download as CSV, JSON, Markdown or Word.
 
 ---
 
-## Step 2: Clone the Space Locally
+## Quick start
 
-Open a terminal and clone the empty Space repo:
+**Web app**
 
 ```bash
-# Install the HF CLI if you haven't already
-pip install huggingface_hub[cli]
-
-# Log in (paste your HF token when prompted)
-huggingface-cli login
-
-# Clone your new Space
-git clone https://huggingface.co/spaces/YOUR_USERNAME/kml-field-report-generator
-cd kml-field-report-generator
+pip install -r requirements.txt
+streamlit run streamlit_app.py
 ```
 
-Replace `YOUR_USERNAME` with your actual Hugging Face username.
+Upload one or more `.kml` / `.kmz` files in the sidebar and start in the **GIS Workbench**.
 
----
-
-## Step 3: Copy the App Files into the Space
-
-From your local `kml2report` project directory, copy these files and folders into the cloned Space directory:
-
-```
-kml-field-report-generator/          <-- your cloned HF Space
-├── .gitignore
-├── README.md                        <-- copy hf-space-readme.md as README.md
-├── requirements.txt
-├── pyproject.toml
-├── streamlit_app.py
-├── config/
-│   └── default.yaml
-└── src/
-    └── kml2report/
-        ├── __init__.py
-        ├── cli.py
-        ├── config.py
-        ├── description_parser.py
-        ├── export.py
-        ├── geocoder.py
-        ├── kml_parser.py
-        ├── llm_report.py
-        ├── models.py
-        ├── pipeline.py
-        ├── summarizer.py
-        └── web.py
-```
-
-### On Windows (PowerShell):
-
-```powershell
-$SRC = "C:\path\to\kml2report"
-$DST = "C:\path\to\kml-field-report-generator"
-
-# Core files
-Copy-Item "$SRC\streamlit_app.py"  "$DST\"
-Copy-Item "$SRC\requirements.txt"  "$DST\"
-Copy-Item "$SRC\pyproject.toml"    "$DST\"
-Copy-Item "$SRC\.gitignore"        "$DST\"
-
-# Use the HF Space readme as the Space's README.md
-Copy-Item "$SRC\hf-space-readme.md" "$DST\README.md"
-
-# Source package
-Copy-Item "$SRC\src" "$DST\src" -Recurse -Exclude "__pycache__","*.pyc","*.egg-info"
-
-# Config
-Copy-Item "$SRC\config" "$DST\config" -Recurse
-```
-
-### On macOS/Linux:
+**Command line**
 
 ```bash
-SRC=~/CascadeProjects/hld-cro-tools/kml2report
-DST=~/kml-field-report-generator
-
-cp "$SRC/streamlit_app.py" "$DST/"
-cp "$SRC/requirements.txt" "$DST/"
-cp "$SRC/pyproject.toml"   "$DST/"
-cp "$SRC/.gitignore"       "$DST/"
-cp "$SRC/hf-space-readme.md" "$DST/README.md"
-
-rsync -av --exclude='__pycache__' --exclude='*.pyc' --exclude='*.egg-info' \
-  "$SRC/src/" "$DST/src/"
-
-cp -r "$SRC/config/" "$DST/config/"
+pip install -e .
+kml2report parse  project.kmz -o rows.csv        # extract attributes + geometry
+kml2report summarize project.kmz -o notes.md     # field-notes summary
+kml2report report notes.md                       # formal report (needs an LLM key)
+kml2report inject --help                         # write notes into a design KML
+kml2report ui                                    # launch the web app
 ```
 
-### Important: Do NOT copy these:
-
-- `.venv/` — the virtual environment (HF Spaces builds its own)
-- `.geocache.json` — local geocode cache (will be rebuilt on the Space)
-- `output/` — local report output files
-- `tests/` — not needed in production (optional to include)
-- `__pycache__/` or `*.egg-info/` — build artifacts
-
----
-
-## Step 4: Add Secrets (Environment Variables)
-
-1. Go to your Space's page: `https://huggingface.co/spaces/YOUR_USERNAME/kml-field-report-generator`
-2. Click **Settings** (gear icon)
-3. Scroll to **Repository secrets**
-4. Add the following secrets:
-
-| Secret Name | Required? | Description |
-|-------------|-----------|-------------|
-| `HF_TOKEN` | For LLM reports | Your Hugging Face access token (included with HF Pro). Enables the formal report generation via Llama 3.3 70B. |
-| `OPENAI_API_KEY` | Optional | Only if you want to use GPT-4o instead of Hugging Face for formal reports |
-| `ANTHROPIC_API_KEY` | Optional | Only if you want to use Claude instead of Hugging Face for formal reports |
-
-**Note:** The core features (KML parsing, field notes summary, geocoding, talk-to-text correction, CSV/JSON export) work with **zero secrets**. You only need `HF_TOKEN` for the LLM-powered formal report tab.
-
----
-
-## Step 5: Push to Hugging Face
-
-From inside the cloned Space directory:
+**Tests**
 
 ```bash
-cd kml-field-report-generator
-
-git add .
-git commit -m "Initial deploy: KML Field Report Generator"
-git push
+pip install pytest && PYTHONPATH=src python -m pytest
 ```
-
-Hugging Face will automatically:
-1. Detect the Streamlit SDK from the `README.md` frontmatter
-2. Install dependencies from `requirements.txt`
-3. Install the `kml2report` package from `pyproject.toml` (via `pip install -e .`)
-4. Launch `streamlit_app.py`
 
 ---
 
-## Step 6: Wait for Build & Verify
+## Deploying
 
-1. Go to your Space URL: `https://huggingface.co/spaces/YOUR_USERNAME/kml-field-report-generator`
-2. You'll see a **Building** status — this takes 2-5 minutes on first deploy
-3. Once it says **Running**, the app is live
-4. If the build fails, click **Logs** to see the error output
-
-### First-time verification checklist:
-
-- [ ] Upload a KML file — the **Data Preview** tab should show a table of features
-- [ ] Switch to **Field Notes Summary** tab — should show geocoded corridors with road names and towns (first run will be slow as it geocodes via OpenStreetMap; subsequent uploads of the same area will be faster)
-- [ ] Switch to **Formal Report** tab — select Hugging Face provider, click Generate (requires `HF_TOKEN` secret)
-- [ ] Switch to **Downloads** tab — verify all download buttons work (CSV, JSON, Summary .md, Formal Report .md)
+Every push to `main` is synced to the Hugging Face Space by `.github/workflows/sync-to-hf.yml` (needs the
+repository secret `HF_TOKEN` with write access to the Space). This file's YAML header sets the Space's SDK and
+app. To create a Space by hand or troubleshoot a build, see
+[`docs/HUGGING_FACE_DEPLOYMENT.md`](docs/HUGGING_FACE_DEPLOYMENT.md).
 
 ---
 
-## Updating the App
+## Project layout
 
-When you make changes locally, just copy the updated files and push:
-
-```bash
-cd kml-field-report-generator
-
-# Copy changed files from your project...
-# Then:
-git add .
-git commit -m "Update: description of changes"
-git push
-```
-
-The Space will automatically rebuild and redeploy.
-
----
-
-## Troubleshooting
-
-### Build fails with "ModuleNotFoundError"
-
-Make sure `requirements.txt` includes all dependencies. The current file should contain:
-
-```
-lxml>=4.9
-click>=8.1
-pyyaml>=6.0
-streamlit>=1.41.0
-pandas>=2.0
-huggingface_hub>=0.20
-requests>=2.31
-```
-
-Also ensure `pyproject.toml` is present — Streamlit Spaces will run `pip install -e .` to install the `kml2report` package.
-
-### "No field notes found" for a valid KML
-
-The summarizer requires features with description text of 3+ characters. If your KML uses a non-standard description format, check the **Data Preview** tab to see if the `notes` column is populated.
-
-### Geocoding is slow on first upload
-
-The app uses OpenStreetMap Nominatim (free, no API key needed) with a 1 request/second rate limit. A file with 100 unique locations takes ~100 seconds on first run. Results are cached in memory for the session. The `.geocache.json` file is written to disk but may not persist across Space restarts on the free tier.
-
-### LLM formal report fails
-
-- Verify `HF_TOKEN` is set in Space Settings → Secrets
-- The default model is `meta-llama/Llama-3.3-70B-Instruct` — this requires a Hugging Face Pro subscription or access to the model
-- You can also enter an OpenAI or Anthropic key directly in the app UI
-
-### Space goes to sleep (free tier)
-
-Free-tier Spaces sleep after ~48 hours of inactivity. They wake up automatically when someone visits the URL (takes ~30 seconds). To keep it always on, upgrade to a **persistent** Space in Settings.
-
----
-
-## File Reference
-
-| File | Purpose |
+| Path | Purpose |
 |------|---------|
-| `README.md` | HF Space metadata (SDK, title) + this guide |
-| `requirements.txt` | Python dependencies for HF Spaces build |
-| `pyproject.toml` | Package definition for `pip install -e .` |
-| `streamlit_app.py` | Main Streamlit UI — the app entry point |
-| `src/kml2report/kml_parser.py` | KML/KMZ file parsing |
-| `src/kml2report/description_parser.py` | Feature description extraction |
-| `src/kml2report/models.py` | Data models (Feature, Geometry) |
-| `src/kml2report/pipeline.py` | End-to-end parsing pipeline |
-| `src/kml2report/export.py` | CSV/JSON export |
-| `src/kml2report/summarizer.py` | Field notes classification, clustering, geocoding, talk-to-text correction, Markdown report generation |
-| `src/kml2report/geocoder.py` | OpenStreetMap Nominatim reverse geocoding with caching |
-| `src/kml2report/llm_report.py` | LLM-powered formal report generation |
-| `src/kml2report/cli.py` | CLI interface (not used by the Space, but included) |
-| `src/kml2report/config.py` | Configuration loading |
-| `config/default.yaml` | Default configuration |
+| `streamlit_app.py` | Web app entry point and landing page |
+| `src/kml2report/kml_parser.py` | Fault-tolerant KML/KMZ parser (keeps original styling, icons, folders) |
+| `src/kml2report/models.py` | `Feature` / `Geometry`, geodesic length and area |
+| `src/kml2report/gis.py` | Attribute and vertex tables, reprojection, buffers, spatial join, QA/QC |
+| `src/kml2report/geoexport.py` | GeoJSON, KML/KMZ, Shapefile, DXF writers |
+| `src/kml2report/contractor_split.py` | Contractor split, difficulty model, releases, per-contractor exports |
+| `src/kml2report/workbench.py` | The GIS Workbench tab |
+| `src/kml2report/geometry_analyzer.py` | Duct / cable footage takeoff |
+| `src/kml2report/summarizer.py`, `geocoder.py`, `llm_report.py` | Field-notes summary and formal report |
+| `src/kml2report/injector.py` | KML note injector |
+| `src/kml2report/cli.py`, `pipeline.py`, `export.py`, `config.py` | Command line and batch pipeline |
+| `tests/` | Unit tests |
+| `docs/` | User guide and Hugging Face deployment guide |
 
 ---
 
-## Architecture Overview
+## Notes and limits
 
-```
-User uploads KML/KMZ
-        │
-        ▼
-┌─────────────────┐
-│   kml_parser.py  │  Parse XML → Feature objects
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  summarizer.py   │  Classify → Clean talk-to-text → Geocode → Cluster → Markdown
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  llm_report.py   │  (Optional) Send summary to LLM → Formal report
-└────────┬────────┘
-         │
-         ▼
-   Streamlit UI: Preview / Summary / Report / Downloads
-```
+- **Balance is best-effort.** One straight cut cannot equalize every quantity at once, so the summary table shows
+  exactly what each contractor gets. Dense-area detection is a proxy (turns, short blocks, assets); tagging a folder as
+  difficult is more reliable when you know where the hard work is.
+- Files are processed on the server for the session and are not stored permanently.
+- Geocoding for the field-notes summary uses OpenStreetMap Nominatim, which is rate-limited on first use.

@@ -106,10 +106,11 @@ def _parse_kmz_bytes(data: bytes, filename: str, report: ParseReport) -> None:
         kml_names.sort(key=lambda n: (os.path.basename(n).lower() != "doc.kml", n.count("/"), n))
         for name in kml_names:
             label = filename if len(kml_names) == 1 else f"{filename}!{name}"
-            _parse_kml_bytes(zf.read(name), label, report)
+            _parse_kml_bytes(zf.read(name), label, report, archive=zf, kml_name=name)
 
 
-def _parse_kml_bytes(data: bytes, filename: str, report: ParseReport) -> None:
+def _parse_kml_bytes(data: bytes, filename: str, report: ParseReport, archive: Optional[zipfile.ZipFile] = None,
+                     kml_name: str = "") -> None:
     data = data.lstrip(b"\xef\xbb\xbf \t\r\n")
     try:
         root = etree.fromstring(data, etree.XMLParser(**_PARSER_ARGS))
@@ -119,17 +120,87 @@ def _parse_kml_bytes(data: bytes, filename: str, report: ParseReport) -> None:
     if root is None:
         report.warnings.append(f"{filename}: empty or unreadable XML")
         return
+    # Capture the original styling BEFORE namespaces are stripped, so it can be written back untouched.
+    style_defs = {el.get("id"): _clean_ns(etree.tostring(el, encoding="unicode"))
+                  for el in root.iter() if isinstance(el.tag, str) and _local_tag(el) in ("Style", "StyleMap")
+                  and el.get("id")}
+    pre = [_capture_presentation(el) for el in root.iter() if isinstance(el.tag, str) and _local_tag(el) == "Placemark"]
+    resources = _collect_resources(style_defs, pre, archive, kml_name)
     _strip_namespace_prefix(root)
     styles = _collect_styles(root)
     count = 0
-    for placemark in root.iter("Placemark"):
+    for i, placemark in enumerate(root.iter("Placemark")):
         try:
-            report.features.append(_parse_placemark(placemark, filename, styles, report.warnings))
+            feat = _parse_placemark(placemark, filename, styles, report.warnings)
+            if i < len(pre):
+                feat.style_url, feat.style_xml, feat.visibility = pre[i]
+            feat.style_defs, feat.resources = style_defs, resources
+            feat.folders = _folder_chain(placemark)
+            report.features.append(feat)
             count += 1
         except Exception as exc:  # one bad Placemark must never kill the file
             report.warnings.append(f"{filename}: skipped Placemark '{_text(placemark, 'name')}' ({exc})")
     if count == 0:
         report.warnings.append(f"{filename}: no Placemarks found")
+
+
+_NS_DECLS = (' xmlns="http://www.opengis.net/kml/2.2"', ' xmlns:kml="http://www.opengis.net/kml/2.2"',
+             ' xmlns:gx="http://www.google.com/kml/ext/2.2"', ' xmlns:atom="http://www.w3.org/2005/Atom"')
+
+
+def _clean_ns(xml: str) -> str:
+    """Drop the namespace declarations every exported KML root already declares."""
+    for d in _NS_DECLS:
+        xml = xml.replace(d, "")
+    return xml
+
+
+def _capture_presentation(pm: etree._Element) -> tuple[str, str, str]:
+    """(styleUrl, inline Style/StyleMap xml, visibility) of a Placemark, read before namespace stripping."""
+    url = inline = vis = ""
+    for ch in pm:
+        if not isinstance(ch.tag, str):
+            continue
+        tag = _local_tag(ch)
+        if tag == "styleUrl":
+            url = (ch.text or "").strip()
+        elif tag in ("Style", "StyleMap"):
+            inline = _clean_ns(etree.tostring(ch, encoding="unicode"))
+        elif tag == "visibility":
+            vis = (ch.text or "").strip()
+    return url, inline, vis
+
+
+_HREF_RE = re.compile(r"<href>\s*([^<]+?)\s*</href>")
+
+
+def _collect_resources(style_defs: dict, pre: list, archive: Optional[zipfile.ZipFile], kml_name: str) -> dict:
+    """Icon images a KMZ ships with: {href as written in the style: bytes}.  Empty for plain KML files."""
+    out: dict = {}
+    if archive is None:
+        return out
+    names = set(archive.namelist())
+    base = os.path.dirname(kml_name)
+    xmls = list(style_defs.values()) + [p[1] for p in pre if p[1]]
+    for xml in xmls:
+        for href in _HREF_RE.findall(xml):
+            if "://" in href or href.startswith(("data:", "/")) or href in out:
+                continue
+            member = os.path.normpath(os.path.join(base, href)).replace("\\", "/")
+            if member in names:
+                out[href] = archive.read(member)
+    return out
+
+
+def _folder_chain(elem: etree._Element) -> tuple:
+    """Real <Folder> names from outermost to innermost (post namespace stripping)."""
+    names = []
+    p = elem.getparent()
+    while p is not None:
+        if _local_tag(p) == "Folder":
+            names.append(_text(p, "name"))
+        p = p.getparent()
+    return tuple(reversed(names))
 
 
 # ---------------------------------------------------------------------------
