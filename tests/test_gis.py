@@ -120,3 +120,77 @@ def test_buffer_and_nearest(report):
     assert gis.buffer_features(report.features, 25)["features"]
     near = gis.nearest_features(report.features, by_name(report, "Pole"), 2)
     assert len(near) == 2
+
+
+# ---- review fixes -------------------------------------------------------
+
+def test_trailing_comma_run_is_flagged_not_corrupted():
+    from kml2report.kml_parser import _parse_coord_text
+    w = []
+    assert _parse_coord_text("-96,29, -95,30,0", w) == [] and any("ambiguous" in x for x in w)
+    assert _parse_coord_text("-96,29,0 -95,30,0", [])  # normal whitespace-separated tuples still parse
+
+
+def test_inner_empty_fields_rejected():
+    from kml2report.kml_parser import _parse_coord_text
+    w = []
+    assert _parse_coord_text("-96,,10", w) == [] and _parse_coord_text(",29,10", w) == []
+    assert len(w) == 2
+
+
+def test_mixed_zero_and_nonzero_altitude_still_analysable():
+    kml = b"""<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>L</name><LineString><coordinates>
+    -96,29,0 -96,29.001,12</coordinates></LineString></Placemark></kml>"""
+    f = parse_bytes(kml, "a.kml").features[0]
+    assert gis.to_shapely(f) is not None
+    assert all(len(p) == 3 for p in f.geometry.to_geojson()["coordinates"])
+
+
+def test_group_summary_name_collision():
+    from kml2report.models import Feature
+    f = Feature(name="a", extended_data={"count": "x", "length_ft": "y"})
+    assert "count (value)" in gis.group_summary([f], "count").columns
+    assert "length_ft (value)" in gis.group_summary([f], "length_ft").columns
+
+
+def test_vertices_include_hole_rings(report):
+    v = gis.extract_vertices([by_name(report, "Parcel")])
+    assert set(v["ring"]) == {"outer", "hole 1"}
+
+
+def test_qa_covers_multipart_and_unusable_polygon():
+    kml = b"""<kml xmlns="http://www.opengis.net/kml/2.2">
+    <Placemark><name>M</name><MultiGeometry>
+      <LineString><coordinates>-96,29 -96,29.001 -96.001,29.0005 -95.999,29.0005</coordinates></LineString>
+      <LineString><coordinates>-95,29 -95,29.001</coordinates></LineString></MultiGeometry></Placemark>
+    <Placemark><name>P</name><Polygon><outerBoundaryIs><LinearRing><coordinates>-96,29 abc -95,29</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+    </kml>"""
+    checks = {i.check for i in gis.run_qa(parse_bytes(kml, "m.kml").features)}
+    assert {"Self-intersecting line", "Dangling end", "Invalid polygon"} <= checks
+
+
+def test_dxf_label_height_and_feet_crs_units():
+    import ezdxf
+    kml = b"""<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>Pole</name><Point><coordinates>-96,29</coordinates></Point></Placemark></kml>"""
+    feats = parse_bytes(kml, "p.kml").features
+    doc = ezdxf.read(io.StringIO(geoexport.to_dxf_bytes(feats, "EPSG:2278").decode()))
+    assert any(e.dxftype() == "TEXT" for e in doc.modelspace())
+    # a feet CRS is already in feet: units_feet=False must convert to metres, not leave feet labelled as metres
+    x_ft = next(e for e in ezdxf.read(io.StringIO(geoexport.to_dxf_bytes(feats, "EPSG:2278").decode())).modelspace()
+                if e.dxftype() == "POINT").dxf.location.x
+    x_m = next(e for e in ezdxf.read(io.StringIO(geoexport.to_dxf_bytes(feats, "EPSG:2278", units_feet=False).decode())).modelspace()
+               if e.dxftype() == "POINT").dxf.location.x
+    assert abs(x_ft / x_m - 3.28) < 0.01
+
+
+def test_projection_centre_survives_invalid_polygons():
+    kml = b"""<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>bow</name><Polygon><outerBoundaryIs><LinearRing><coordinates>
+    -96,29 -95.9,29.1 -95.9,29 -96,29.1 -96,29</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></kml>"""
+    feats = parse_bytes(kml, "b.kml").features
+    assert gis.centroid_lonlat(feats) is not None and gis.buffer_features(feats, 10) is not None
+
+
+def test_feature_without_coordinates_does_not_break_bounds():
+    kml = b"""<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>none</name></Placemark></kml>"""
+    feats = parse_bytes(kml, "n.kml").features
+    assert gis.bounds_of(feats) is None

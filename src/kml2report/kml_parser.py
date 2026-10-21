@@ -260,9 +260,14 @@ def _parse_coord_text(text: Optional[str], warnings: list[str], label: str = "")
     cleaned = re.sub(r"\s*,\s*", ",", text.strip())
     result: list[Coord] = []
     for token in cleaned.split():
-        parts = [p for p in token.split(",") if p != ""]
+        token = token.rstrip(",")  # only a trailing comma is optional; empty inner fields make the tuple invalid
+        parts = token.split(",")
+        if len(parts) > 3:
+            # e.g. "-96,29, -95,30,0": a trailing comma glued two tuples together - cannot be split safely
+            warnings.append(f"{label}: skipped ambiguous coordinate run '{token[:40]}'")
+            continue
         try:
-            nums = [float(p) for p in parts[:3]]
+            nums = [float(p) for p in parts]
         except ValueError:
             warnings.append(f"{label}: skipped unreadable coordinate '{token[:40]}'")
             continue

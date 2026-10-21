@@ -161,6 +161,10 @@ def parse_report_multi(file_data: list[tuple[bytes, str]]):
             continue
         features.extend(rep.features)
         warnings.extend(rep.warnings)
+    from kml2report.description_parser import parse_description
+
+    for feat in features:  # same attribute extraction as run_pipeline, so description-only fields show up
+        feat.parsed_attributes = parse_description(feat.raw_description)
     return features, warnings
 
 
@@ -335,6 +339,16 @@ file_data: list[tuple[bytes, str]] = [
 ]
 file_names = [f.name for f in uploaded_files]
 stem = Path(file_names[0]).stem if len(file_names) == 1 else "combined"
+
+# Reset cached analysis whenever different file contents are uploaded (must run before any tab renders)
+import hashlib
+_files_sig = tuple((n, hashlib.sha1(b).hexdigest()) for b, n in file_data)
+if st.session_state.get('geometry_sig') != _files_sig:
+    st.session_state.geometry_sig = _files_sig
+    st.session_state.geometry_features = None
+    st.session_state.geometry_summary = None
+    for _k in ('wb_buffer', 'wb_qa_res'):
+        st.session_state.pop(_k, None)
 
 tab_gis, tab_preview, tab_summary, tab_report, tab_download, tab_inject, tab_geometry = st.tabs(
     ["🧭 GIS Workbench", "📊 Data Preview", "📝 Field Notes Summary", "📄 Formal Report", "⬇️ Downloads", "🗺️ KML Injector", "📐 Geometry Analysis"]
@@ -712,15 +726,6 @@ with tab_geometry:
     )
     
     # Check if we have features already loaded
-    # Reset cached analysis whenever a different set of files is uploaded
-    _files_sig = tuple((n, len(b)) for b, n in file_data)
-    if st.session_state.get('geometry_sig') != _files_sig:
-        st.session_state.geometry_sig = _files_sig
-        st.session_state.geometry_features = None
-        st.session_state.geometry_summary = None
-        st.session_state.pop('wb_buffer', None)
-        st.session_state.pop('wb_qa_res', None)
-
     # Load features if not already loaded
     if st.session_state.geometry_features is None:
         with st.spinner("Loading features for geometry analysis..."):

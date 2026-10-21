@@ -168,19 +168,25 @@ class Geometry:
             return "POLYGON (" + ", ".join(f"({pairs(r)})" for r in rings) + ")"
         return ""
 
-    def to_geojson(self) -> Optional[dict]:
-        """GeoJSON geometry object (RFC 7946 field order: lon, lat[, alt])."""
+    def _has_z(self) -> bool:
+        return any(c[2] for g in self.iter_simple() for c in g.coordinates + [h for r in g.holes for h in r])
+
+    def to_geojson(self, with_z: Optional[bool] = None) -> Optional[dict]:
+        """GeoJSON geometry (RFC 7946 order: lon, lat[, alt]).  Every position of a geometry has the same
+        dimensionality: altitude is written for all vertices (zeros included) or for none."""
         if self.is_empty:
             return None
+        if with_z is None:
+            with_z = self._has_z()
 
         def pt(c: Coord) -> list[float]:
-            return [c[0], c[1], c[2]] if c[2] else [c[0], c[1]]
+            return [c[0], c[1], c[2]] if with_z else [c[0], c[1]]
 
         def closed(cs: list[Coord]) -> list[Coord]:
             return cs if cs and cs[0] == cs[-1] else cs + cs[:1]
 
         if self.parts:
-            geoms = [g for g in (p.to_geojson() for p in self.parts) if g]
+            geoms = [g for g in (p.to_geojson(with_z) for p in self.parts) if g]
             return {"type": "GeometryCollection", "geometries": geoms}
         t = self.geometry_type
         if t == "Point":
