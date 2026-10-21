@@ -305,3 +305,16 @@ User uploads KML/KMZ
          ▼
    Streamlit UI: Preview / Summary / Report / Downloads
 ```
+
+## GIS Workbench (v2)
+
+The Streamlit app now opens on a **GIS Workbench** tab:
+
+- **Map** – all layers (colored by folder, file style or geometry type), search, labels, tooltips with length/area
+- **Attribute table** – every Placemark with calculated length/area, plus a *vertex table* (every coordinate with station and optional State Plane / UTM X/Y)
+- **Statistics** – per-layer totals and group-by-any-attribute pivots
+- **Analysis** – buffers, points-in-polygons spatial join, nearest features, elevation profile
+- **QA/QC** – duplicate geometry, near-zero length, self-intersections, dangling ends, declared-vs-measured length mismatch, invalid polygons
+- **Export** – GeoJSON, clean KML, Shapefile (.zip with .prj), AutoCAD DXF (layers = KML folders, written in feet)
+
+Parser hardening: spaces inside coordinates (`-96.0, 29.0, 0`), bad tuples (skipped with a warning, never fatal), polygon holes, `LinearRing`, `gx:Track`, `MultiGeometry` parts, nested folder paths, `Style`/`StyleMap` colors, `ExtendedData`, KMZ detection by content, and files with undefined namespace prefixes.

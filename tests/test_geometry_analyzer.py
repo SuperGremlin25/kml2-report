@@ -31,6 +31,8 @@ def test_parse_description_html():
     result = parse_description_html(html)
     assert result == {
         'Duct_Size': '2"',
+        'Duct_Package': 'single',
+        'Duct_Count': '1',
         'New_Length': '106.507453'
     }
     
@@ -167,8 +169,8 @@ def test_generate_summary_report():
     assert '2" duct: 330.00 ft' in report
     assert '3" duct: 220.00 ft' in report
     assert '4" duct: 200.00 ft' in report
-    assert "Total segments: 5" in report
-    assert "Total length: 750.00 ft" in report
+    assert "Total linear segments: 5" in report
+    assert "Total linear length: 750.00 ft" in report
 
 
 if __name__ == "__main__":
