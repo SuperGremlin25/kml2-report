@@ -36,7 +36,7 @@ assignments. Everything runs in the browser app (Streamlit) or from the command 
 | **Statistics** | Per-folder totals; group by any attribute (a pivot table) |
 | **Analysis** | Buffers, points-in-polygons, nearest features, elevation profile |
 | **QA / QC** | Duplicate geometry, near-zero length, self-intersections, dangling ends, attribute-vs-measured length mismatch, invalid polygons |
-| **Contractor Split** | Divide the build between two contractors, all at once or **in releases** (see below) |
+| **Contractor Split** | Divide the build between two contractors, all at once, **in releases**, or **with a cut you place yourself** (see below) |
 | **Export** | GeoJSON, KML/KMZ (your styling intact), Shapefile (with `.prj`), AutoCAD DXF (layers = your folders, in feet) |
 
 ### Contractor split — fair work, not just equal footage
@@ -55,6 +55,9 @@ share of the **hard work**:
   planning more releases never changes the earlier ones. Choose which end to start from.
 - **Output:** a clean KML (or KMZ) per contractor per release, each contractor's running total, the work not yet
   released, an overview with the boundary, and a summary CSV — in one zip.
+- **Place the cut yourself:** pick north-south, east-west or an angle and slide the cut across the job (or put it
+  right through a chosen handhole). Both contractors' footage and handholes update as you go; lines crossing the cut
+  are split exactly on it.
 
 ### Your styling survives export
 Contractor files, overviews and the "KML (clean)" export reproduce each placemark exactly as you built it: icon,

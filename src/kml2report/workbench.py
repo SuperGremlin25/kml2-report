@@ -269,15 +269,20 @@ def _render_split(vis: list[Feature], stem: str) -> None:
     st.caption("Divide the build into two contiguous contractor areas with matched footage, duct and handholes, "
                "then export a clean KML for each contractor containing only their work.")
     mode = st.radio("How should the work be handed out?",
-                    ["All of it, split between the two contractors", "In releases - a set footage at a time"],
+                    ["All of it, split between the two contractors", "In releases - a set footage at a time",
+                     "I'll place the cut myself"],
                     horizontal=True, key="sp_mode")
     releases_mode = mode.startswith("In releases")
+    manual_mode = mode.startswith("I'll place")
     c1, c2 = st.columns(2)
     name_a = c1.text_input("Contractor 1", "Contractor A", key="sp_na")
     name_b = c2.text_input("Contractor 2", "Contractor B", key="sp_nb")
-    share = 0.5 if releases_mode else st.slider(f"{name_a} share of the work (%)", 30, 70, 50, key="sp_share") / 100
+    share = 0.5 if (releases_mode or manual_mode) else st.slider(f"{name_a} share of the work (%)", 30, 70, 50, key="sp_share") / 100
     clip = st.checkbox("Cut lines exactly at the boundary (equalizes footage precisely)", True, key="sp_clip",
                        help="Off = whole segments go to whichever side holds their center; no line is cut.")
+    if manual_mode:
+        _render_manual(vis, stem, name_a, name_b, clip)
+        return
     with st.expander("What matters most? (balance weights)"):
         w_total = st.slider("Total footage", 0.0, 10.0, cs.DEFAULT_WEIGHTS["total"], 0.5, key="sp_w1")
         w_duct = st.slider("Duct-feet (footage x ducts)", 0.0, 10.0, cs.DEFAULT_WEIGHTS["duct"], 0.5, key="sp_w2")
@@ -397,6 +402,100 @@ def _render_split(vis: list[Feature], stem: str) -> None:
     d2.download_button(f"⬇️ {name_b}", file_b, f"{stem}_contractor2{ext_b}", cs.MIME[ext_b])
     d3.download_button("⬇️ Overview", file_o, f"{stem}_split_overview{ext_o}", cs.MIME[ext_o])
     d4.download_button("📦 Everything (.zip)", cs.bundle_zip(res, stem, recolor), f"{stem}_contractor_split.zip",
+                       "application/zip")
+
+
+def _render_manual(vis: list[Feature], stem: str, name_a: str, name_b: str, clip: bool) -> None:
+    """Drag a straight cut across the map; footage and handholes for each contractor update as you go."""
+    import pydeck as pdk
+    from kml2report import contractor_split as cs
+
+    st.caption("Pick a direction and slide the cut across the job. Both contractors' totals update as you go. "
+               "Lines that cross the cut are split exactly on it.")
+    kind = st.radio("Cut direction", ["North-South line (splits east / west)", "East-West line (splits north / south)",
+                                      "Custom angle"], horizontal=True, key="mc_dir")
+    if kind.startswith("North"):
+        angle, first, second = 0.0, "west", "east"
+    elif kind.startswith("East"):
+        angle, first, second = 90.0, "south", "north"
+    else:
+        angle = st.slider("Angle of the cut's normal (0 = east, 90 = north)", 0, 179, 45, key="mc_angle")
+        first, second = "low side", "high side"
+    try:
+        lo, hi = cs.cut_extent(vis, float(angle))
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    pts = sorted({f.name for f in vis if f.name and f.geometry and any(
+        p.geometry_type == "Point" and p.coordinates for p in f.geometry.iter_simple())})
+    through = st.selectbox("Cut through a point (optional) - pick a handhole or other point to put the cut right on it",
+                           ["(slide it myself)"] + pts, key="mc_through")
+    if through != "(slide it myself)":
+        pt = next(p for f in vis if f.name == through and f.geometry for p in f.geometry.iter_simple()
+                  if p.geometry_type == "Point" and p.coordinates)
+        off = cs.offset_through_point(vis, float(angle), pt.coordinates[0][0], pt.coordinates[0][1])
+        if not lo <= off <= hi:
+            st.warning("That point is outside the job in this direction.")
+        off = min(max(off, lo), hi)
+    else:
+        pos = st.slider(f"Position of the cut (0 = {first} edge, 100 = {second} edge)", 0.0, 100.0, 50.0, 0.1,
+                        key="mc_pos")
+        off = lo + (hi - lo) * pos / 100.0
+    flip = st.radio(f"Who gets the {first} side?", [name_a, name_b], horizontal=True, key="mc_flip")
+    names = (name_a, name_b) if flip == name_a else (name_b, name_a)
+    try:
+        res = cs.manual_cut(vis, float(angle), off, clip, names)
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    if not res.a or not res.b:
+        st.warning("All the work is on one side - move the cut.")
+    tot = res.stats.iloc[0]
+    m1, m2, m3 = st.columns(3)
+    m1.metric(f"{names[0]} ({first}) footage", f"{tot[names[0]]:,.0f} ft")
+    m2.metric(f"{names[1]} ({second}) footage", f"{tot[names[1]]:,.0f} ft")
+    hh = res.stats[res.stats["metric"] == cs.HANDHOLES]
+    m3.metric("Handholes", f"{int(hh[names[0]].iloc[0])} / {int(hh[names[1]].iloc[0])}" if len(hh) else "-")
+    st.dataframe(res.stats, use_container_width=True)
+
+    def gj(feats, color):
+        rgb = _hex_to_rgb(color)
+        out = []
+        for f in feats:
+            g = f.geometry.to_geojson() if f.geometry else None
+            if g:
+                out.append({"type": "Feature", "geometry": g, "properties": {
+                    "name": f.name, "len": f"{f.geometry.length_feet:,.0f} ft" if f.geometry.length_m else "",
+                    "rgb": rgb}})
+        return {"type": "FeatureCollection", "features": out}
+
+    col = "[properties.rgb[0], properties.rgb[1], properties.rgb[2], 255]"
+    layers = [pdk.Layer("GeoJsonLayer", gj(f, c), pickable=True, stroked=True, filled=True, get_line_color=col,
+                        get_fill_color="[properties.rgb[0], properties.rgb[1], properties.rgb[2], 80]",
+                        get_point_radius=3, point_radius_min_pixels=4, line_width_min_pixels=3)
+              for f, c in ((res.a, cs.COLORS[0]), (res.b, cs.COLORS[1]))]
+    layers.append(pdk.Layer("PathLayer", [{"path": [list(p) for p in res.cut_lonlat]}], get_path="path",
+                            get_color=[255, 200, 0, 255], width_min_pixels=3))
+    b = gis.bounds_of(vis)
+    if b:
+        span = max(b[2] - b[0], b[3] - b[1], 1e-5)
+        st.pydeck_chart(pdk.Deck(layers=layers, map_style="road", tooltip={"html": "<b>{name}</b> {len}"},
+                                 initial_view_state=pdk.ViewState(longitude=(b[0] + b[2]) / 2,
+                                                                  latitude=(b[1] + b[3]) / 2,
+                                                                  zoom=max(1.0, min(19.0, math.log2(360 / span) - 1)))),
+                        use_container_width=True)
+    st.markdown(f"<span style='color:{cs.COLORS[0]}'>■</span> {names[0]} &nbsp; "
+                f"<span style='color:{cs.COLORS[1]}'>■</span> {names[1]} &nbsp; "
+                f"<span style='color:#ffc800'>■</span> your cut", unsafe_allow_html=True)
+
+    file_a, ext_a = cs.contractor_file(res.a, names[0], stem)
+    file_b, ext_b = cs.contractor_file(res.b, names[1], stem)
+    file_o, ext_o = cs.overview_file(res, stem, False)
+    d1, d2, d3, d4 = st.columns(4)
+    d1.download_button(f"⬇️ {names[0]}", file_a, f"{stem}_{cs._safe(names[0])}{ext_a}", cs.MIME[ext_a])
+    d2.download_button(f"⬇️ {names[1]}", file_b, f"{stem}_{cs._safe(names[1])}{ext_b}", cs.MIME[ext_b])
+    d3.download_button("⬇️ Overview", file_o, f"{stem}_split_overview{ext_o}", cs.MIME[ext_o])
+    d4.download_button("📦 Everything (.zip)", cs.bundle_zip(res, stem, False), f"{stem}_manual_split.zip",
                        "application/zip")
 
 

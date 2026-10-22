@@ -687,6 +687,42 @@ def apply_split(features: list[Feature], cand: SplitCandidate, clip: bool = True
                        [p1, p2], pd.DataFrame(rows), clip, names)
 
 
+def cut_extent(features: list[Feature], angle_deg: float) -> tuple[float, float]:
+    """Smallest and largest cut offset (metres) that still leaves work on both sides, for a cut whose normal
+    points along ``angle_deg`` (grid east = 0, grid north = 90).  Same axis ``apply_split`` uses."""
+    c = centroid_lonlat(features)
+    fwd = transformer(WGS84, f"EPSG:{utm_epsg(*c)}")
+    th = math.radians(angle_deg)
+    lo, hi = math.inf, -math.inf
+    for f in features:
+        if not f.geometry or f.geometry.is_empty:
+            continue
+        for p in f.geometry.iter_simple():
+            if not p.coordinates:
+                continue
+            xs, ys = fwd.transform([q[0] for q in p.coordinates], [q[1] for q in p.coordinates])
+            d = np.asarray(xs) * math.cos(th) + np.asarray(ys) * math.sin(th)
+            lo, hi = min(lo, float(d.min())), max(hi, float(d.max()))
+    if not math.isfinite(lo):
+        raise ValueError("Nothing to split.")
+    return lo, hi
+
+
+def offset_through_point(features: list[Feature], angle_deg: float, lon: float, lat: float) -> float:
+    """Cut offset (metres) that passes through ``lon``/``lat`` for the given cut direction."""
+    c = centroid_lonlat(features)
+    x, y = transformer(WGS84, f"EPSG:{utm_epsg(*c)}").transform(lon, lat)
+    th = math.radians(angle_deg)
+    return float(x * math.cos(th) + y * math.sin(th))
+
+
+def manual_cut(features: list[Feature], angle_deg: float, offset_m: float, clip: bool = True,
+               names: tuple[str, str] = ("Contractor A", "Contractor B"),
+               difficulty: Optional[Difficulty] = None) -> SplitResult:
+    """Split at a cut you placed yourself (same result object and exports as the automatic split)."""
+    return apply_split(features, SplitCandidate(angle_deg, offset_m, 0.0), clip, names, difficulty)
+
+
 def split_contractors(features: list[Feature], share_a: float = 0.5, clip: bool = True,
                       weights: Optional[dict] = None, fixed_angle: Optional[float] = None,
                       names: tuple[str, str] = ("Contractor A", "Contractor B"),
