@@ -549,7 +549,7 @@ def validate_names(names: tuple[str, str]) -> tuple[str, str]:
         raise ValueError("Give both contractors a name.")
     if a.casefold() == b.casefold():
         raise ValueError("The two contractors need different names.")
-    reserved = {"metric", "difference"}
+    reserved = {"metric", "difference", "release"}
     for n in (a, b):
         if n.casefold() in reserved or n.casefold().endswith(" share %"):
             raise ValueError(f"'{n}' is a reserved report column name - choose another contractor name.")
@@ -810,7 +810,9 @@ def plan_releases(features: list[Feature], per_contractor_ft: float = 5000.0, st
             chunk, rest, _ = cut_features(remaining, theta, offset, clip=True, labels=None,
                                           note="Cut at release boundary")
             final = False
-            if not chunk or len(rest) == len(remaining):
+            remaining_ft = sum(f.geometry.length_feet for f in remaining if f.geometry)
+            rest_ft = sum(f.geometry.length_feet for f in rest if f.geometry)
+            if not chunk or rest_ft >= remaining_ft:
                 warnings.append(f"Release {number}: could not find a boundary - stopped.")
                 break
         try:

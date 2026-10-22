@@ -14,12 +14,14 @@ nested Folder paths, KMZ archives (doc.kml first, any number of KMLs).
 from __future__ import annotations
 
 import io
+import html
 import os
 import re
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator, Optional, Union
+from urllib.parse import unquote
 
 from lxml import etree
 
@@ -121,7 +123,7 @@ def _parse_kml_bytes(data: bytes, filename: str, report: ParseReport, archive: O
         report.warnings.append(f"{filename}: empty or unreadable XML")
         return
     # Capture the original styling BEFORE namespaces are stripped, so it can be written back untouched.
-    style_defs = {el.get("id"): _clean_ns(etree.tostring(el, encoding="unicode"))
+    style_defs = {el.get("id"): _capture_xml(el)
                   for el in root.iter() if isinstance(el.tag, str) and _local_tag(el) in ("Style", "StyleMap")
                   and el.get("id")}
     pre = [_capture_presentation(el) for el in root.iter() if isinstance(el.tag, str) and _local_tag(el) == "Placemark"]
@@ -144,15 +146,12 @@ def _parse_kml_bytes(data: bytes, filename: str, report: ParseReport, archive: O
         report.warnings.append(f"{filename}: no Placemarks found")
 
 
-_NS_DECLS = (' xmlns="http://www.opengis.net/kml/2.2"', ' xmlns:kml="http://www.opengis.net/kml/2.2"',
-             ' xmlns:gx="http://www.google.com/kml/ext/2.2"', ' xmlns:atom="http://www.w3.org/2005/Atom"')
-
-
-def _clean_ns(xml: str) -> str:
-    """Drop the namespace declarations every exported KML root already declares."""
-    for d in _NS_DECLS:
-        xml = xml.replace(d, "")
-    return xml
+def _capture_xml(el: etree._Element) -> str:
+    """Serialize a presentation fragment with namespace-independent KML element names."""
+    captured = etree.fromstring(etree.tostring(el))
+    _strip_namespace_prefix(captured)
+    etree.cleanup_namespaces(captured)
+    return etree.tostring(captured, encoding="unicode")
 
 
 def _capture_presentation(pm: etree._Element) -> tuple[str, str, str]:
@@ -165,13 +164,13 @@ def _capture_presentation(pm: etree._Element) -> tuple[str, str, str]:
         if tag == "styleUrl":
             url = (ch.text or "").strip()
         elif tag in ("Style", "StyleMap"):
-            inline = _clean_ns(etree.tostring(ch, encoding="unicode"))
+            inline = _capture_xml(ch)
         elif tag == "visibility":
             vis = (ch.text or "").strip()
     return url, inline, vis
 
 
-_HREF_RE = re.compile(r"<href>\s*([^<]+?)\s*</href>")
+_HREF_RE = re.compile(r"<(?:[\w.-]+:)?href\b[^>]*>\s*([^<]+?)\s*</(?:[\w.-]+:)?href>")
 
 
 def _collect_resources(style_defs: dict, pre: list, archive: Optional[zipfile.ZipFile], kml_name: str) -> dict:
@@ -183,7 +182,8 @@ def _collect_resources(style_defs: dict, pre: list, archive: Optional[zipfile.Zi
     base = os.path.dirname(kml_name)
     xmls = list(style_defs.values()) + [p[1] for p in pre if p[1]]
     for xml in xmls:
-        for href in _HREF_RE.findall(xml):
+        for raw_href in _HREF_RE.findall(xml):
+            href = unquote(html.unescape(raw_href).strip())
             if "://" in href or href.startswith(("data:", "/")) or href in out:
                 continue
             member = os.path.normpath(os.path.join(base, href)).replace("\\", "/")

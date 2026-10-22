@@ -10,6 +10,7 @@ import re
 import zipfile
 from typing import Iterable, Optional
 from xml.sax.saxutils import escape
+from urllib.parse import quote, unquote
 
 from pyproj import CRS
 
@@ -188,8 +189,9 @@ def _geom_xml(g) -> str:
 _KML_OPEN = ('<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2" '
              'xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" '
              'xmlns:atom="http://www.w3.org/2005/Atom">')
-_HREF = re.compile(r"<href>\s*([^<]+?)\s*</href>")
-_ID_ATTR = re.compile(r'^(<(?:Style|StyleMap)\b[^>]*?\bid=")[^"]*(")')
+_HREF = re.compile(r"(<(?:[\w.-]+:)?href\b[^>]*>\s*)([^<]+?)(\s*</(?:[\w.-]+:)?href>)")
+_STYLE_URL = re.compile(r"(<(?:[\w.-]+:)?styleUrl\b[^>]*>\s*)([^<]+?)(\s*</(?:[\w.-]+:)?styleUrl>)")
+_ID_ATTR = re.compile(r'^(<(?:[\w.-]+:)?(?:Style|StyleMap)\b[^>]*?\bid=")[^"]*(")')
 
 
 def _set_id(xml: str, new_id: str) -> str:
@@ -203,12 +205,12 @@ class _StyleBook:
     def __init__(self) -> None:
         self.defs: dict[str, str] = {}         # export id -> xml
         self.resources: dict[str, bytes] = {}  # href inside the package -> image bytes
-        self._owner: dict[tuple, str] = {}     # (source file, original id) -> export id
+        self._owner: dict[tuple, str] = {}     # (source definitions, original id) -> export id
 
     def adopt_resources(self, xml: str, f: Feature) -> str:
         """Record the icon files an xml fragment points at; keep their paths unique and inside the package."""
         def fix(m: "re.Match[str]") -> str:
-            href = m.group(1)
+            href = unquote(html.unescape(m.group(2)).strip())
             data = f.resources.get(href)
             if data is None:
                 return m.group(0)
@@ -217,12 +219,20 @@ class _StyleBook:
             if unsafe or (key in self.resources and self.resources[key] != data):
                 key = f"files/{hashlib.sha1(data).hexdigest()[:8]}_{key.rsplit('/', 1)[-1]}"
             self.resources[key] = data
-            return m.group(0).replace(href, key)
+            return f"{m.group(1)}{escape(quote(key, safe='/-._~'))}{m.group(3)}"
         return _HREF.sub(fix, xml)
+
+    def resolve_style_refs(self, xml: str, f: Feature) -> str:
+        def fix(m: "re.Match[str]") -> str:
+            ref = html.unescape(m.group(2)).strip()
+            if ref.startswith("#"):
+                ref = f"#{self.register(f, ref[1:])}"
+            return f"{m.group(1)}{escape(ref)}{m.group(3)}"
+        return _STYLE_URL.sub(fix, xml)
 
     def register(self, f: Feature, orig: str) -> str:
         """Export id for the style ``orig`` as defined in ``f``'s source file (adds it, and what it points at)."""
-        k = (f.source_file, orig)
+        k = (id(f.style_defs), orig)
         if k in self._owner:
             return self._owner[k]
         xml = f.style_defs.get(orig)
@@ -230,10 +240,7 @@ class _StyleBook:
             self._owner[k] = orig
             return orig
         self._owner[k] = orig  # provisional, guards against StyleMap cycles
-        for ref in sorted(set(re.findall(r"<styleUrl>#([^<]+)</styleUrl>", xml))):
-            new = self.register(f, ref)
-            if new != ref:
-                xml = xml.replace(f"<styleUrl>#{ref}</styleUrl>", f"<styleUrl>#{new}</styleUrl>")
+        xml = self.resolve_style_refs(xml, f)
         xml = self.adopt_resources(xml, f)
         eid, n = orig, 1
         while eid in self.defs and self.defs[eid] != _set_id(xml, eid):  # same id, different content: keep both
@@ -270,14 +277,16 @@ def _placemark_xml(f: Feature, book: _StyleBook, override_style: str = "") -> st
                   for k, v in shown.items())
     if override_style:                      # caller asked for a recolour: it replaces the original styling
         style = f"<styleUrl>#{override_style}</styleUrl>"
-    elif f.style_xml:                       # the placemark's own inline style
-        style = book.adopt_resources(f.style_xml, f)
-    elif f.style_url.startswith("#"):       # a shared style defined in the file
-        style = f"<styleUrl>#{book.register(f, f.style_url[1:])}</styleUrl>"
-    elif f.style_url:                       # a style in another file / online: keep the reference
-        style = f"<styleUrl>{escape(f.style_url)}</styleUrl>"
     else:
-        style = ""
+        style_parts = []
+        if f.style_url.startswith("#"):       # a shared style defined in the file
+            style_parts.append(f"<styleUrl>#{book.register(f, f.style_url[1:])}</styleUrl>")
+        elif f.style_url:                      # a style in another file / online: keep the reference
+            style_parts.append(f"<styleUrl>{escape(f.style_url)}</styleUrl>")
+        if f.style_xml:                        # inline styling can supplement the shared reference
+            inline = book.resolve_style_refs(f.style_xml, f)
+            style_parts.append(book.adopt_resources(inline, f))
+        style = "".join(style_parts)
     vis = f"<visibility>{escape(f.visibility)}</visibility>" if f.visibility else ""
     if f.time_end:
         time = f"<TimeSpan><begin>{escape(f.time_begin)}</begin><end>{escape(f.time_end)}</end></TimeSpan>"
