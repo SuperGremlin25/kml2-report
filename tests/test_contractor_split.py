@@ -209,7 +209,7 @@ def test_exported_features_keep_full_duct_package():
 
 
 @pytest.mark.parametrize("names", [("A", "A"), ("A", " a "), ("", "B"), ("metric", "B"), ("A", "difference"),
-                                   ("A", "A share %")])
+                                   ("A", "release"), ("A", "A share %")])
 def test_bad_contractor_names_rejected(feats, names):
     with pytest.raises(ValueError):
         cs.split_contractors(feats, names=names)
@@ -368,3 +368,14 @@ def test_angle_refinement_finds_cut_nearly_parallel_to_long_runs():
     fs = parse_bytes(('<kml xmlns="http://www.opengis.net/kml/2.2">' + items + "</kml>").encode(), "p.kml").features
     r = cs.split_contractors(fs, difficulty=cs.Difficulty(auto=False))
     assert 49.5 < share(r, cs.TOTAL) < 50.5
+
+
+def test_release_boundary_can_cut_one_long_feature():
+    kml = (b'<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>Long run</name><LineString><coordinates>'
+           b'-96,29 -95.9,29</coordinates></LineString></Placemark></kml>')
+    fs = parse_bytes(kml, "long.kml").features
+    plan = cs.plan_releases(fs, 5000, start="west", max_releases=2,
+                            difficulty=cs.Difficulty(auto=False))
+    assert len(plan.releases) == 2 and not plan.warnings
+    assert all(sum(f.geometry.length_feet for f in r.a + r.b) == pytest.approx(10000, rel=0.01)
+               for r in plan.releases)

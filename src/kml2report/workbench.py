@@ -416,7 +416,7 @@ def _render_releases(vis: list[Feature], stem: str, base_params: tuple, names: t
                                help="Earlier releases never change when you plan more of them."))
     start = {"Auto (west or south end)": "auto", "West end": "west", "East end": "east", "South end": "south",
              "North end": "north"}[start_label]
-    params = (base_params, per, start, upto)
+    params = (base_params, st.session_state.get("geometry_sig"), per, start, upto)
     if st.button("📦 Plan releases", type="primary", key="rl_go"):
         try:
             with st.spinner("Planning releases..."):
@@ -431,6 +431,8 @@ def _render_releases(vis: list[Feature], stem: str, base_params: tuple, names: t
         return
     for w in plan.warnings:
         st.warning(w)
+    if not plan.releases:
+        return
     left_ft = sum(f.geometry.length_feet for f in plan.remaining if f.geometry)
     m1, m2, m3 = st.columns(3)
     m1.metric("Releases planned", len(plan.releases))

@@ -123,9 +123,10 @@ def test_plain_kml_without_packed_icons_stays_plain_kml():
 
 
 def test_same_style_id_from_two_files_keeps_both_definitions():
-    a = parse_bytes(make_kmz(), "a.kmz").features
+    a = parse_bytes(make_kmz(), "same.kmz").features
     other = DOC.replace(b"<scale>1.4</scale>", b"<scale>3.0</scale>").replace(b"icons/pole.png", b"icons/other.png")
-    b = parse_bytes(make_kmz(other, {"icons/other.png": b"\x89PNG-other", "icons/hh_hi.png": HH_HI_PNG}), "b.kmz").features
+    b = parse_bytes(make_kmz(other, {"icons/other.png": b"\x89PNG-other", "icons/hh_hi.png": HH_HI_PNG}),
+                    "same.kmz").features
     data, ext = geoexport.to_kml_package([("m", [by_name(a, "Pole West"), by_name(b, "Pole West")], None)], "m",
                                          wrap_groups=False)
     z = zipfile.ZipFile(io.BytesIO(data))
@@ -134,6 +135,42 @@ def test_same_style_id_from_two_files_keeps_both_definitions():
     scales = {("<scale>1.4</scale>" in f.style_defs[f.style_url[1:]], "<scale>3.0</scale>" in f.style_defs[f.style_url[1:]])
               for f in out}
     assert scales == {(True, False), (False, True)}  # each placemark still points at its own file's style
+
+
+def test_prefixed_kml_styles_inline_overrides_and_uri_encoded_icons_round_trip():
+    doc = b"""<kml:kml xmlns:kml="http://www.opengis.net/kml/2.2"><kml:Document>
+      <kml:Style id="base"><kml:IconStyle><kml:Icon><kml:href>icons/A%26B.png</kml:href>
+        <kml:href>icons/C&amp;D.png</kml:href></kml:Icon></kml:IconStyle></kml:Style>
+      <kml:Style id="highlight"><kml:LabelStyle><kml:scale>1.5</kml:scale></kml:LabelStyle></kml:Style>
+      <kml:StyleMap id="shared"><kml:Pair><kml:key>normal</kml:key><kml:styleUrl>#base</kml:styleUrl></kml:Pair>
+        <kml:Pair><kml:key>highlight</kml:key><kml:styleUrl>#highlight</kml:styleUrl></kml:Pair></kml:StyleMap>
+      <kml:Placemark><kml:name>Shared and inline</kml:name><kml:styleUrl>#shared</kml:styleUrl>
+        <kml:Style><kml:LabelStyle><kml:scale>0.8</kml:scale></kml:LabelStyle></kml:Style>
+        <kml:Point><kml:coordinates>-96,29</kml:coordinates></kml:Point></kml:Placemark>
+      <kml:Placemark><kml:name>Inline map</kml:name><kml:StyleMap><kml:Pair><kml:key>normal</kml:key>
+        <kml:styleUrl>#highlight</kml:styleUrl></kml:Pair></kml:StyleMap>
+        <kml:Point><kml:coordinates>-96,29</kml:coordinates></kml:Point></kml:Placemark>
+    </kml:Document></kml:kml>"""
+    fs = parse_bytes(make_kmz(doc, {"icons/A&B.png": b"\x89PNG-amp", "icons/C&D.png": b"\x89PNG-entity"}),
+                     "prefixed.kmz").features
+    assert fs[0].resources["icons/A&B.png"] == b"\x89PNG-amp"
+    assert fs[0].resources["icons/C&D.png"] == b"\x89PNG-entity"
+
+    data, ext = geoexport.to_kml_package([("all", fs, None)], "all", wrap_groups=False)
+    assert ext == ".kmz"
+    archive = zipfile.ZipFile(io.BytesIO(data))
+    assert archive.read("icons/A&B.png") == b"\x89PNG-amp"
+    assert archive.read("icons/C&D.png") == b"\x89PNG-entity"
+    xml = archive.read("doc.kml").decode()
+    assert "<styleUrl>#shared</styleUrl><Style>" in xml
+    assert "icons/A%26B.png" in xml
+    assert "icons/C%26D.png" in xml
+    out = parse_bytes(data, "out.kmz").features
+    shared = by_name(out, "Shared and inline")
+    assert shared.style_url.startswith("#") and "<LabelStyle>" in shared.style_xml
+    assert {"base", "highlight", "shared"} <= set(shared.style_defs)
+    inline_map = by_name(out, "Inline map")
+    assert "highlight" in inline_map.style_defs
 
 
 def test_clean_kml_export_keeps_styles_too(feats):

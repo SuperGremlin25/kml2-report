@@ -103,6 +103,12 @@ def test_bad_inputs(feats):
         cs.plan_releases(feats, 5000, names=("A", "a"))
 
 
+def test_unusable_weights_return_warnings_without_releases(feats):
+    zero = {"total": 0, "duct": 0, "handholes": 0, "per_size": 0, "other_assets": 0, "difficulty": 0, "dense": 0}
+    plan = cs.plan_releases(feats, 5000, weights=zero)
+    assert not plan.releases and plan.warnings
+
+
 def test_zip_has_every_release_unique_names_and_only_own_work(plan):
     z = zipfile.ZipFile(io.BytesIO(cs.releases_zip(plan, "proj")))
     names = z.namelist()
