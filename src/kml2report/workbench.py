@@ -232,9 +232,10 @@ def _render_prints(vis: list[Feature], stem: str) -> None:
     c3.metric("Flagged callouts", sum(1 for _, c in plan.callouts() if c.flag))
 
     if len(plan.placed()) < len(plan.sheets) and vis and st.button(
-            "Place remaining sheets using KML handhole names", key="wb_place_names"):
-        n = prints.place_from_kml_names(plan, vis)
-        st.success(f"Placed {n} more sheet(s)." if n else "No sheet could be matched to KML point names.")
+            "Place remaining sheets from KML handholes (tentative)", key="wb_place_names"):
+        n = prints.place_from_kml_names(plan, vis) + prints.place_by_registration(plan, vis)
+        st.success(f"Placed {n} more sheet(s). Check them against the map - they are marked tentative."
+                   if n else "No sheet could be matched to the KML handholes.")
 
     prints.place_callouts(plan)
     polys = [{"name": s.label, "path": [list(p) for p in s.footprint()]} for s in plan.placed()]

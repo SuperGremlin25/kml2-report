@@ -124,3 +124,24 @@ def test_kml_export_has_sheets_and_pins(plan):
     assert "<name>Sheets</name>" in kml and "PRINT-01" in kml
     assert kml.count("<Polygon>") >= 1
     assert "<name>Callouts</name>" in kml
+
+
+def test_place_by_registration_without_names():
+    plan = prints.read_plan_set(make_pdf(), "t.pdf")
+    sh = plan.sheets[1]
+    # four extra handhole labels so the pattern is distinctive
+    for k, (x, y) in enumerate([(100, 100), (700, 400), (300, 600), (900, 150)]):
+        sh.callouts.append(prints.Callout("handhole", f"HH{k}", x, y))
+    sh.callouts = [c for c in sh.callouts if c.kind != "handhole"] + [
+        prints.Callout("handhole", f"HH{k}", x, y)
+        for k, (x, y) in enumerate([(100, 100), (700, 400), (300, 600), (900, 150)])]
+    o_lon, o_lat = -99.15, 35.36
+    pts = "".join(
+        f"<Placemark><name>HH-0000{k}</name><Point><coordinates>{lonlat(x, y, o_lon, o_lat)[0]},"
+        f"{lonlat(x, y, o_lon, o_lat)[1]},0</coordinates></Point></Placemark>"
+        for k, (x, y) in enumerate([(100, 100), (700, 400), (300, 600), (900, 150)]))
+    feats = parse_bytes(f'<kml xmlns="http://www.opengis.net/kml/2.2"><Document>{pts}</Document></kml>'.encode(), "t.kml").features
+    assert prints.place_by_registration(plan, feats, min_hits=4) == 1
+    assert plan.sheets[1].tentative
+    assert plan.sheets[1].origin_lon == pytest.approx(o_lon, abs=1e-4)
+    assert plan.sheets[1].origin_lat == pytest.approx(o_lat, abs=1e-4)

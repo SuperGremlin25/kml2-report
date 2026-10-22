@@ -56,6 +56,7 @@ class Sheet:
     origin_lat: Optional[float] = None
     rms_ft: Optional[float] = None
     n_anchors: int = 0
+    tentative: bool = False  # placed by pattern matching, not by printed coordinates
     notes: list = field(default_factory=list)
 
     @property
@@ -362,6 +363,7 @@ def sheet_table(plan: PlanSet):
         rows.append({
             "page": s.page, "sheet": s.label, "placed": s.placed,
             "pole anchors": s.n_anchors,
+            "placement": "" if not s.placed else ("tentative (handhole match)" if s.tentative else "pole coordinates"),
             "fit error (ft)": None if s.rms_ft is None else round(s.rms_ft, 1),
             "footage callouts": len(foot),
             "footage sum (ft)": round(sum(c.value_ft or 0 for c in foot), 1),
@@ -414,6 +416,75 @@ def place_from_kml_names(plan: PlanSet, features, reject_ft: float = 150.0) -> i
             if a.flag:
                 c.flag = a.flag
         sh.notes.append(f"placed from {sh.n_anchors} KML handhole names")
+        placed += 1
+    return placed
+
+
+def place_by_registration(plan: PlanSet, features, tol_ft: float = 60.0, min_hits: int = 4,
+                          only_unplaced: bool = True) -> int:
+    """Place sheets by pattern-matching their handhole labels onto KML handhole points.
+
+    Scale and north are known, so only a shift is unknown: every (label, KML point)
+    pair votes for a shift, and the shift with the most votes wins when it clearly
+    beats the runner-up. Needs no matching names. Returns sheets placed.
+    """
+    pts = [(g.coordinates[0][0], g.coordinates[0][1]) for f in features
+           for g in f.geometry.iter_simple() if g.geometry_type == "Point" and g.coordinates]
+    if len(pts) < min_hits:
+        return 0
+    lat0 = statistics.fmean(p[1] for p in pts)
+    ft_lon = FT_PER_DEG_LAT * math.cos(math.radians(lat0))
+    kp = [(lo * ft_lon, la * FT_PER_DEG_LAT) for lo, la in pts]  # ft, north-up
+    placed = 0
+    for sh in plan.sheets:
+        if only_unplaced and sh.placed:
+            continue
+        labels = [c for c in sh.callouts if c.kind == "handhole"]
+        # one entry per distinct label position; repeated labels (two fonts) count once
+        seen, lab = set(), []
+        for c in labels:
+            k = (round(c.x / 8), round(c.y / 8))
+            if k not in seen:
+                seen.add(k)
+                lab.append(c)
+        if len(lab) < min_hits:
+            continue
+        s_ft = sh.ft_per_pt
+        votes: dict = {}
+        for c in lab:
+            lx, ly = c.x * s_ft, -c.y * s_ft
+            for kx, ky in kp:
+                key = (round((kx - lx) / tol_ft), round((ky - ly) / tol_ft))
+                votes.setdefault(key, set()).add(id(c))
+        ranked = sorted(((len(v), k) for k, v in votes.items()), reverse=True)
+        if not ranked or ranked[0][0] < min_hits:
+            continue
+        # merge neighbouring bins around the winner so a shift on a bin edge is not split
+        wk = ranked[0][1]
+        near = set()
+        for k, v in votes.items():
+            if abs(k[0] - wk[0]) <= 1 and abs(k[1] - wk[1]) <= 1:
+                near |= v
+        runner = max((n for n, k in ranked if abs(k[0] - wk[0]) > 2 or abs(k[1] - wk[1]) > 2), default=0)
+        if len(near) < min_hits or len(near) < runner + 2:
+            continue
+        # refine: median shift of the best pair per label inside the winning neighbourhood
+        cx, cy = wk[0] * tol_ft, wk[1] * tol_ft
+        dxs, dys = [], []
+        for c in lab:
+            lx, ly = c.x * s_ft, -c.y * s_ft
+            best = min(((kx - lx - cx) ** 2 + (ky - ly - cy) ** 2, kx - lx, ky - ly) for kx, ky in kp)
+            if best[0] <= (2 * tol_ft) ** 2:
+                dxs.append(best[1])
+                dys.append(best[2])
+        if len(dxs) < min_hits or len(dxs) < 0.6 * len(lab):
+            continue
+        mx, my = statistics.median(dxs), statistics.median(dys)
+        sh.origin_lon, sh.origin_lat = mx / ft_lon, my / FT_PER_DEG_LAT
+        sh.n_anchors = len(dxs)
+        sh.rms_ft = None
+        sh.tentative = True
+        sh.notes.append(f"placed by matching {len(dxs)} handholes to the KML")
         placed += 1
     return placed
 
