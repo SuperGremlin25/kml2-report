@@ -36,6 +36,7 @@ assignments. Everything runs in the browser app (Streamlit) or from the command 
 | **Statistics** | Per-folder totals; group by any attribute (a pivot table) |
 | **Analysis** | Buffers, points-in-polygons, nearest features, elevation profile |
 | **QA / QC** | Duplicate geometry, near-zero length, self-intersections, dangling ends, attribute-vs-measured length mismatch, invalid polygons |
+| **Prints (PDF)** | Upload the construction print set; each sheet is placed on the map from its printed pole lat/long, footage callouts are read, typo'd coordinates are flagged, and print footage is compared with KML footage |
 | **Contractor Split** | Divide the build between two contractors, all at once or **in releases** (see below) |
 | **Export** | GeoJSON, KML/KMZ (your styling intact), Shapefile (with `.prj`), AutoCAD DXF (layers = your folders, in feet) |
 

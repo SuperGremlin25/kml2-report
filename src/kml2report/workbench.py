@@ -75,9 +75,9 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
         s = search.lower()
         vis = [f for f in vis if s in " ".join([f.name, f.raw_description, *map(str, gis.feature_attributes(f).values())]).lower()]
 
-    t_map, t_table, t_stats, t_analysis, t_qa, t_split, t_export = right.tabs(
+    t_map, t_table, t_stats, t_analysis, t_qa, t_split, t_prints, t_export = right.tabs(
         ["🗺️ Map", "📋 Attribute Table", "📊 Statistics", "🧭 Analysis", "✅ QA / QC", "👷 Contractor Split",
-         "📦 Export"])
+         "📐 Prints (PDF)", "📦 Export"])
 
     # ------------------------------------------------------------------ map
     with t_map:
@@ -176,6 +176,10 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
     with t_split:
         _render_split(vis, stem)
 
+    # --------------------------------------------------------------- prints
+    with t_prints:
+        _render_prints(vis, stem)
+
     # --------------------------------------------------------------- export
     with t_export:
         st.caption(f"Exports include the {len(vis):,} currently visible feature(s).")
@@ -195,6 +199,76 @@ def render(features: list[Feature], warnings: list[str], stem: str) -> None:
         except Exception as exc:
             e4.error(f"DXF failed: {exc}")
         st.caption("DXF layers follow your KML folders; coordinates are written in feet when the CRS is metric.")
+
+
+def _render_prints(vis: list[Feature], stem: str) -> None:
+    """Upload a print-set PDF, place its sheets on the map and compare footage."""
+    from kml2report import prints
+
+    st.caption("Upload the construction print set (vector PDF with a text layer). Each sheet is placed from the "
+               "pole latitude/longitude callouts printed on it and the plan scale stored in the PDF.")
+    up = st.file_uploader("Print set (PDF)", type=["pdf"], key="wb_pdf")
+    if up is None:
+        st.info("No prints loaded yet.")
+        return
+    data = up.getvalue()
+    key = ("wb_plan", hashlib.sha1(data).hexdigest())
+    if st.session_state.get("wb_plan_key") != key:
+        with st.spinner("Reading prints..."):
+            try:
+                plan = prints.georeference(prints.read_plan_set(data, up.name))
+            except Exception as exc:  # unreadable / encrypted PDFs
+                st.error(f"Could not read this PDF: {exc}")
+                return
+        st.session_state["wb_plan"] = plan
+        st.session_state["wb_plan_key"] = key
+    plan = st.session_state["wb_plan"]
+    for w in plan.warnings:
+        st.warning(w)
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Sheets", len(plan.sheets))
+    c2.metric("Placed", len(plan.placed()))
+    c3.metric("Flagged callouts", sum(1 for _, c in plan.callouts() if c.flag))
+
+    if len(plan.placed()) < len(plan.sheets) and vis and st.button(
+            "Place remaining sheets using KML handhole names", key="wb_place_names"):
+        n = prints.place_from_kml_names(plan, vis)
+        st.success(f"Placed {n} more sheet(s)." if n else "No sheet could be matched to KML point names.")
+
+    prints.place_callouts(plan)
+    polys = [{"name": s.label, "path": [list(p) for p in s.footprint()]} for s in plan.placed()]
+    pins = [{"name": c.text, "lon": c.lon, "lat": c.lat} for _, c in plan.callouts()
+            if c.kind == "pole" and c.lon is not None]
+    if polys:
+        import pydeck as pdk
+        lons = [p[0] for pl in polys for p in pl["path"]]
+        lats = [p[1] for pl in polys for p in pl["path"]]
+        layers = [pdk.Layer("PathLayer", polys, get_path="path", get_color=[255, 140, 0], width_min_pixels=2),
+                  pdk.Layer("ScatterplotLayer", pins, get_position=["lon", "lat"], get_radius=6,
+                            get_fill_color=[220, 30, 30])]
+        st.pydeck_chart(pdk.Deck(layers=layers, tooltip={"text": "{name}"}, map_style=None,
+                                 initial_view_state=pdk.ViewState(latitude=sum(lats) / len(lats),
+                                                                  longitude=sum(lons) / len(lons), zoom=13)))
+
+    st.subheader("Sheets")
+    st.dataframe(prints.sheet_table(plan), use_container_width=True)
+    flagged = prints.callout_table(plan)
+    flagged = flagged[flagged["flag"] != ""]
+    if not flagged.empty:
+        st.subheader("Check these printed coordinates")
+        st.dataframe(flagged, use_container_width=True)
+    if vis and plan.placed():
+        st.subheader("Print callouts vs KML footage")
+        st.caption("Print sum adds every footage callout on the sheet (spans, bores, risers), so expect it to differ "
+                   "from KML line length wherever labels repeat or lines run off the sheet.")
+        st.dataframe(prints.compare_with_features(plan, vis), use_container_width=True)
+
+    d1, d2 = st.columns(2)
+    d1.download_button("⬇️ Sheets + callouts KML", prints.to_kml(plan), f"{stem}_prints.kml",
+                       "application/vnd.google-earth.kml+xml")
+    d2.download_button("⬇️ Callouts CSV", prints.callout_table(plan).to_csv(index=False),
+                       f"{stem}_callouts.csv", "text/csv")
 
 
 def _render_map(vis: list[Feature], layers: list[str], color_by: str, basemap: str, show_labels: bool) -> None:
