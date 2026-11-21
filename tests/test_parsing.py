@@ -6,6 +6,7 @@ import csv
 import json
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,6 +15,7 @@ from kml2report.description_parser import parse_description
 from kml2report.export import export_csv, export_json
 from kml2report.pipeline import run_pipeline
 from kml2report.config import load_config
+from kml2report.llm_report import generate_formal_report
 
 FIXTURES = Path(__file__).parent / "fixtures"
 KV_KML = FIXTURES / "sample-keyvalue.kml"
@@ -237,3 +239,95 @@ class TestGeometry:
         wkt = route.geometry.to_wkt()
         assert wkt.startswith("LINESTRING")
         assert "," in wkt
+
+
+class TestCloudflareProvider:
+    """Tests for the Cloudflare Workers AI LLM provider."""
+
+    def test_unknown_provider_error_message_includes_cloudflare(self):
+        with pytest.raises(ValueError, match="cloudflare"):
+            generate_formal_report("notes", provider="unknown_xyz")
+
+    def test_cloudflare_missing_token_raises(self, monkeypatch):
+        monkeypatch.delenv("CF_API_TOKEN", raising=False)
+        monkeypatch.delenv("CF_ACCOUNT_ID", raising=False)
+        monkeypatch.setenv("CF_ACCOUNT_ID", "test-account")
+        with pytest.raises(EnvironmentError, match="CF_API_TOKEN"):
+            generate_formal_report("notes", provider="cloudflare")
+
+    def test_cloudflare_missing_account_id_raises(self, monkeypatch):
+        monkeypatch.setenv("CF_API_TOKEN", "test-token")
+        monkeypatch.delenv("CF_ACCOUNT_ID", raising=False)
+        with pytest.raises(EnvironmentError, match="CF_ACCOUNT_ID"):
+            generate_formal_report("notes", provider="cloudflare")
+
+    def test_cloudflare_calls_openai_client(self, monkeypatch):
+        monkeypatch.setenv("CF_API_TOKEN", "test-token")
+        monkeypatch.setenv("CF_ACCOUNT_ID", "test-account-id")
+
+        mock_message = MagicMock()
+        mock_message.content = "# Formal Report\n\nContent here."
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_response
+
+        with patch("openai.OpenAI", return_value=mock_client) as mock_openai_cls:
+            result = generate_formal_report("field notes here", provider="cloudflare")
+
+        assert result == "# Formal Report\n\nContent here."
+        mock_openai_cls.assert_called_once_with(
+            api_key="test-token",
+            base_url="https://api.cloudflare.com/client/v4/accounts/test-account-id/ai/v1",
+        )
+        mock_client.chat.completions.create.assert_called_once()
+        call_kwargs = mock_client.chat.completions.create.call_args[1]
+        assert call_kwargs["model"] == "@cf/meta/llama-3.1-8b-instruct"
+
+    def test_cloudflare_custom_model(self, monkeypatch):
+        monkeypatch.setenv("CF_API_TOKEN", "test-token")
+        monkeypatch.setenv("CF_ACCOUNT_ID", "test-account-id")
+
+        mock_message = MagicMock()
+        mock_message.content = "Report content."
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_response
+
+        with patch("openai.OpenAI", return_value=mock_client):
+            result = generate_formal_report(
+                "field notes",
+                provider="cloudflare",
+                model="@cf/mistral/mistral-7b-instruct-v0.1",
+            )
+
+        assert result == "Report content."
+        call_kwargs = mock_client.chat.completions.create.call_args[1]
+        assert call_kwargs["model"] == "@cf/mistral/mistral-7b-instruct-v0.1"
+
+    def test_cloudflare_custom_base_url(self, monkeypatch):
+        monkeypatch.setenv("CF_API_TOKEN", "test-token")
+        monkeypatch.setenv("CF_ACCOUNT_ID", "test-account-id")
+
+        mock_message = MagicMock()
+        mock_message.content = "Report."
+        mock_choice = MagicMock()
+        mock_choice.message = mock_message
+        mock_response = MagicMock()
+        mock_response.choices = [mock_choice]
+
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_response
+
+        custom_url = "https://custom.proxy/v1"
+        with patch("openai.OpenAI", return_value=mock_client) as mock_openai_cls:
+            generate_formal_report("notes", provider="cloudflare", base_url=custom_url)
+
+        mock_openai_cls.assert_called_once_with(api_key="test-token", base_url=custom_url)
